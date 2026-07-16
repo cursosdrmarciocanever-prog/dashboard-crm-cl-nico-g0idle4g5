@@ -9,6 +9,7 @@ import Index from './pages/Index'
 import Login from './pages/Login'
 import Patients from './pages/Patients'
 import Appointments from './pages/Appointments'
+import PatientJourney from './pages/PatientJourney'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 
@@ -23,6 +24,7 @@ const App = () => (
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/pacientes" element={<Patients />} />
+            <Route path="/jornada" element={<PatientJourney />} />
             <Route path="/agendamentos" element={<Appointments />} />
             <Route path="/configuracoes" element={<Settings />} />
           </Route>

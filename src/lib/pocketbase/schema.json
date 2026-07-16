@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-16T07:59:36.511Z",
+  "generatedAt": "2026-07-16T08:34:51.758Z",
   "collections": [
     {
       "name": "users",
@@ -100,11 +100,56 @@
           "required": false,
           "system": false,
           "autodateTriggers": ["onCreate", "onUpdate"]
+        },
+        {
+          "name": "journey_stage",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "lead",
+            "appointment_confirmed",
+            "exams_sent",
+            "exams_received",
+            "questionnaire_sent",
+            "questionnaire_answered"
+          ]
+        },
+        {
+          "name": "last_contact_date",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "exams_sent_flag",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "exams_received_flag",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "anamnesis_sent_flag",
+          "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "questionnaire_answered_flag",
+          "type": "bool",
+          "required": false,
+          "system": false
         }
       ],
       "indexes": [
         "CREATE INDEX idx_patients_name ON patients (name)",
-        "CREATE INDEX idx_patients_status ON patients (status)"
+        "CREATE INDEX idx_patients_status ON patients (status)",
+        "CREATE INDEX `idx_patients_journey_stage` ON `patients` (journey_stage)"
       ]
     },
     {
