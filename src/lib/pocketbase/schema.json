@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-16T08:57:54.269Z",
+  "generatedAt": "2026-07-16T09:07:19.195Z",
   "collections": [
     {
       "name": "users",
@@ -102,20 +102,6 @@
           "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
-          "name": "journey_stage",
-          "type": "select",
-          "required": false,
-          "system": false,
-          "selectValues": [
-            "lead",
-            "appointment_confirmed",
-            "exams_sent",
-            "exams_received",
-            "questionnaire_sent",
-            "questionnaire_answered"
-          ]
-        },
-        {
           "name": "last_contact_date",
           "type": "date",
           "required": false,
@@ -142,6 +128,44 @@
         {
           "name": "questionnaire_answered_flag",
           "type": "bool",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "journey_stage",
+          "type": "select",
+          "required": false,
+          "system": false,
+          "selectValues": [
+            "novo_lead",
+            "agendamento_confirmado",
+            "exames_enviados",
+            "exames_recebidos",
+            "questionario_enviado",
+            "questionario_respondido"
+          ]
+        },
+        {
+          "name": "traffic_platform",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "campaign_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ad_set_name",
+          "type": "text",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "ad_name",
+          "type": "text",
           "required": false,
           "system": false
         }
@@ -205,6 +229,63 @@
         }
       ],
       "indexes": ["CREATE INDEX idx_appointments_date ON appointments (appointment_date)"]
+    },
+    {
+      "name": "scheduled_messages",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "patient_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "patients"
+        },
+        {
+          "name": "message_text",
+          "type": "text",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "scheduled_at",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "status",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": ["pending", "sent", "cancelled"]
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_scheduled_messages_scheduled_at ON scheduled_messages (scheduled_at)",
+        "CREATE INDEX idx_scheduled_messages_status ON scheduled_messages (status)"
+      ]
     }
   ]
 }

@@ -39,7 +39,7 @@ migrate(
 
     const oldField = col.fields.getByName('journey_stage')
     if (oldField) {
-      col.fields.remove(oldField)
+      col.fields.removeById(oldField.id)
     }
     col.fields.add(
       new SelectField({
