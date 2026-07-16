@@ -1,10 +1,10 @@
 export type JourneyStage =
-  | 'lead'
-  | 'appointment_confirmed'
-  | 'exams_sent'
-  | 'exams_received'
-  | 'questionnaire_sent'
-  | 'questionnaire_answered'
+  | 'novo_lead'
+  | 'agendamento_confirmado'
+  | 'exames_enviados'
+  | 'exames_recebidos'
+  | 'questionario_enviado'
+  | 'questionario_respondido'
 
 export interface JourneyStageConfig {
   value: JourneyStage
@@ -15,37 +15,37 @@ export interface JourneyStageConfig {
 
 export const JOURNEY_STAGES: JourneyStageConfig[] = [
   {
-    value: 'lead',
-    label: 'Lead',
+    value: 'novo_lead',
+    label: 'Novo Lead',
     dotClass: 'bg-blue-500',
     headerClass: 'text-blue-700',
   },
   {
-    value: 'appointment_confirmed',
+    value: 'agendamento_confirmado',
     label: 'Agendamento Confirmado',
     dotClass: 'bg-cyan-500',
     headerClass: 'text-cyan-700',
   },
   {
-    value: 'exams_sent',
+    value: 'exames_enviados',
     label: 'Exames Enviados',
     dotClass: 'bg-amber-500',
     headerClass: 'text-amber-700',
   },
   {
-    value: 'exams_received',
+    value: 'exames_recebidos',
     label: 'Exames Recebidos',
     dotClass: 'bg-orange-500',
     headerClass: 'text-orange-700',
   },
   {
-    value: 'questionnaire_sent',
+    value: 'questionario_enviado',
     label: 'Questionário Enviado',
     dotClass: 'bg-purple-500',
     headerClass: 'text-purple-700',
   },
   {
-    value: 'questionnaire_answered',
+    value: 'questionario_respondido',
     label: 'Questionário Respondido',
     dotClass: 'bg-green-500',
     headerClass: 'text-green-700',

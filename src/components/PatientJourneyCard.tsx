@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { Phone, Calendar as CalendarIcon, ChevronRight } from 'lucide-react'
+import { Phone, Calendar as CalendarIcon, ChevronRight, Globe } from 'lucide-react'
 import type { Patient } from '@/services/patients'
 import { cn } from '@/lib/utils'
 
@@ -51,6 +51,12 @@ export function PatientJourneyCard({
               ? format(new Date(patient.last_contact_date), 'dd/MM/yyyy')
               : 'Sem registro'}
           </p>
+          {patient.traffic_platform && (
+            <p className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
+              <Globe className="w-3 h-3 flex-shrink-0" />
+              {patient.traffic_platform}
+            </p>
+          )}
         </div>
         <ChevronRight className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
       </div>

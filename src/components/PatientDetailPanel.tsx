@@ -9,6 +9,7 @@ import {
   FileCheck,
   ClipboardList,
   CheckCircle2,
+  Globe,
 } from 'lucide-react'
 import {
   Sheet,
@@ -21,6 +22,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import {
   Select,
   SelectContent,
@@ -40,18 +42,17 @@ interface PatientDetailPanelProps {
 }
 
 const CHECKLIST = [
-  { key: 'exams_sent_flag', label: 'Marcar lista de exames enviada', icon: FileText },
-  { key: 'exams_received_flag', label: 'Marcar PDF de exames recebido', icon: FileCheck },
-  {
-    key: 'anamnesis_sent_flag',
-    label: 'Marcar questionário de anamnese enviado',
-    icon: ClipboardList,
-  },
-  {
-    key: 'questionnaire_answered_flag',
-    label: 'Marcar questionário respondido',
-    icon: CheckCircle2,
-  },
+  { key: 'exams_sent_flag', label: 'Lista de exames enviada', icon: FileText },
+  { key: 'exams_received_flag', label: 'PDF de exames recebido', icon: FileCheck },
+  { key: 'anamnesis_sent_flag', label: 'Questionário de anamnese enviado', icon: ClipboardList },
+  { key: 'questionnaire_answered_flag', label: 'Questionário respondido', icon: CheckCircle2 },
+] as const
+
+const TRAFFIC_FIELDS = [
+  { key: 'traffic_platform', label: 'Plataforma' },
+  { key: 'campaign_name', label: 'Nome da campanha' },
+  { key: 'ad_set_name', label: 'Nome do conjunto de anúncio' },
+  { key: 'ad_name', label: 'Nome do anúncio' },
 ] as const
 
 export function PatientDetailPanel({
@@ -82,6 +83,16 @@ export function PatientDetailPanel({
     setLocal((prev) => (prev ? { ...prev, journey_stage: stage as JourneyStage } : prev))
     try {
       await updatePatient(local.id, { journey_stage: stage })
+      onUpdated()
+    } catch {
+      setLocal(patient)
+    }
+  }
+
+  const handleTrafficBlur = async (field: string, value: string) => {
+    if (!local) return
+    try {
+      await updatePatient(local.id, { [field]: value })
       onUpdated()
     } catch {
       setLocal(patient)
@@ -131,9 +142,33 @@ export function PatientDetailPanel({
                 </div>
               </div>
 
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-muted-foreground" />
+                  <h4 className="text-sm font-semibold text-foreground">Origem do Tráfego</h4>
+                </div>
+                {TRAFFIC_FIELDS.map((field) => (
+                  <div key={field.key} className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">{field.label}</Label>
+                    <Input
+                      value={(local[field.key as keyof Patient] as string) || ''}
+                      onChange={(e) =>
+                        setLocal((prev) => (prev ? { ...prev, [field.key]: e.target.value } : prev))
+                      }
+                      onBlur={(e) => handleTrafficBlur(field.key, e.target.value)}
+                      placeholder={`Ex: ${field.label}`}
+                      className="h-9"
+                    />
+                  </div>
+                ))}
+              </div>
+
               <div className="space-y-2">
                 <Label>Estágio da Jornada</Label>
-                <Select value={local.journey_stage || 'lead'} onValueChange={handleStageChange}>
+                <Select
+                  value={local.journey_stage || 'novo_lead'}
+                  onValueChange={handleStageChange}
+                >
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
@@ -147,10 +182,10 @@ export function PatientDetailPanel({
                 </Select>
               </div>
 
-              {local.journey_stage === 'lead' && (
+              {local.journey_stage === 'novo_lead' && (
                 <Button
                   className="w-full gap-2"
-                  onClick={() => handleStageChange('appointment_confirmed')}
+                  onClick={() => handleStageChange('agendamento_confirmado')}
                 >
                   Confirmar Agendamento <ArrowRight className="w-4 h-4" />
                 </Button>

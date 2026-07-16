@@ -10,6 +10,7 @@ import Login from './pages/Login'
 import Patients from './pages/Patients'
 import Appointments from './pages/Appointments'
 import PatientJourney from './pages/PatientJourney'
+import ScheduledMessages from './pages/ScheduledMessages'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/pacientes" element={<Patients />} />
             <Route path="/jornada" element={<PatientJourney />} />
             <Route path="/agendamentos" element={<Appointments />} />
+            <Route path="/mensagens" element={<ScheduledMessages />} />
             <Route path="/configuracoes" element={<Settings />} />
           </Route>
           <Route path="*" element={<NotFound />} />

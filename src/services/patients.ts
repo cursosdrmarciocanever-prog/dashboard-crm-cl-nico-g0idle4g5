@@ -14,6 +14,10 @@ export interface Patient extends RecordModel {
   exams_received_flag?: boolean
   anamnesis_sent_flag?: boolean
   questionnaire_answered_flag?: boolean
+  traffic_platform?: string
+  campaign_name?: string
+  ad_set_name?: string
+  ad_name?: string
 }
 
 export const getPatients = (filter?: string) =>

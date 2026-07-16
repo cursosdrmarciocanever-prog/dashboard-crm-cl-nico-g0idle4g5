@@ -1,5 +1,13 @@
 import { Link, useLocation } from 'react-router-dom'
-import { LayoutDashboard, Users, Calendar, Settings, Activity, KanbanSquare } from 'lucide-react'
+import {
+  LayoutDashboard,
+  Users,
+  Calendar,
+  Settings,
+  Activity,
+  KanbanSquare,
+  MessageSquare,
+} from 'lucide-react'
 import {
   Sidebar as ShadcnSidebar,
   SidebarContent,
@@ -16,6 +24,7 @@ const menuItems = [
   { icon: Users, label: 'Pacientes', path: '/pacientes' },
   { icon: KanbanSquare, label: 'Jornada do Paciente', path: '/jornada' },
   { icon: Calendar, label: 'Agendamentos', path: '/agendamentos' },
+  { icon: MessageSquare, label: 'Mensagens Agendadas', path: '/mensagens' },
   { icon: Settings, label: 'Configurações', path: '/configuracoes' },
 ]
 
