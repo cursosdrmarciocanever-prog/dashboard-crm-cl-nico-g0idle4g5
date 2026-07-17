@@ -7,6 +7,7 @@ import {
   Activity,
   KanbanSquare,
   MessageSquare,
+  TrendingUp,
 } from 'lucide-react'
 import {
   Sidebar as ShadcnSidebar,
@@ -25,6 +26,7 @@ const menuItems = [
   { icon: KanbanSquare, label: 'Jornada do Paciente', path: '/jornada' },
   { icon: Calendar, label: 'Agendamentos', path: '/agendamentos' },
   { icon: MessageSquare, label: 'Mensagens Agendadas', path: '/mensagens' },
+  { icon: TrendingUp, label: 'Performance', path: '/performance' },
   { icon: Settings, label: 'Configurações', path: '/configuracoes' },
 ]
 

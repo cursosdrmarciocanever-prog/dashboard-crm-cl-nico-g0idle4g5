@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { getPatients, updatePatient, type Patient } from '@/services/patients'
 import { useRealtime } from '@/hooks/use-realtime'
 import { JOURNEY_STAGES, type JourneyStage } from '@/lib/journey-stages'
+import { stageToFlags } from '@/lib/journey-sync'
 import { PatientJourneyCard } from '@/components/PatientJourneyCard'
 import { PatientDetailPanel } from '@/components/PatientDetailPanel'
 import { cn } from '@/lib/utils'
@@ -36,7 +37,8 @@ export default function PatientJourney() {
     const patient = patients.find((p) => p.id === draggedId)
     setDraggedId(null)
     if (patient && patient.journey_stage !== stage) {
-      await updatePatient(draggedId, { journey_stage: stage })
+      const flags = stageToFlags(stage)
+      await updatePatient(draggedId, { journey_stage: stage, ...flags })
       load()
     }
   }

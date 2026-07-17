@@ -32,6 +32,7 @@ import {
 } from '@/components/ui/select'
 import { Patient, updatePatient } from '@/services/patients'
 import { JOURNEY_STAGES, type JourneyStage } from '@/lib/journey-stages'
+import { FLAG_TO_STAGE, type ChecklistFlag } from '@/lib/journey-sync'
 import { cn } from '@/lib/utils'
 
 interface PatientDetailPanelProps {
@@ -71,7 +72,13 @@ export function PatientDetailPanel({
     if (!local) return
     setLocal((prev) => (prev ? { ...prev, [flag]: value } : prev))
     try {
-      await updatePatient(local.id, { [flag]: value })
+      const updates: Record<string, unknown> = { [flag]: value }
+      if (value && flag in FLAG_TO_STAGE) {
+        const newStage = FLAG_TO_STAGE[flag as ChecklistFlag]
+        updates.journey_stage = newStage
+        setLocal((prev) => (prev ? { ...prev, journey_stage: newStage } : prev))
+      }
+      await updatePatient(local.id, updates)
       onUpdated()
     } catch {
       setLocal(patient)

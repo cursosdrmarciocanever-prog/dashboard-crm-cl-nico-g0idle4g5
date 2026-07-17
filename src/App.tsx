@@ -11,6 +11,7 @@ import Patients from './pages/Patients'
 import Appointments from './pages/Appointments'
 import PatientJourney from './pages/PatientJourney'
 import ScheduledMessages from './pages/ScheduledMessages'
+import Performance from './pages/Performance'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
 
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/jornada" element={<PatientJourney />} />
             <Route path="/agendamentos" element={<Appointments />} />
             <Route path="/mensagens" element={<ScheduledMessages />} />
+            <Route path="/performance" element={<Performance />} />
             <Route path="/configuracoes" element={<Settings />} />
           </Route>
           <Route path="*" element={<NotFound />} />

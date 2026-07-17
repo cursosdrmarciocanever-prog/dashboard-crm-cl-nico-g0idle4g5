@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-16T09:07:19.195Z",
+  "generatedAt": "2026-07-17T09:59:58.123Z",
   "collections": [
     {
       "name": "users",
@@ -285,6 +285,77 @@
       "indexes": [
         "CREATE INDEX idx_scheduled_messages_scheduled_at ON scheduled_messages (scheduled_at)",
         "CREATE INDEX idx_scheduled_messages_status ON scheduled_messages (status)"
+      ]
+    },
+    {
+      "name": "patient_stage_history",
+      "type": "base",
+      "apiRules": {
+        "list": "@request.auth.id != ''",
+        "view": "@request.auth.id != ''",
+        "create": "@request.auth.id != ''",
+        "update": "@request.auth.id != ''",
+        "delete": "@request.auth.id != ''"
+      },
+      "fields": [
+        {
+          "name": "patient_id",
+          "type": "relation",
+          "required": true,
+          "system": false,
+          "collectionRef": "patients"
+        },
+        {
+          "name": "stage",
+          "type": "select",
+          "required": true,
+          "system": false,
+          "selectValues": [
+            "novo_lead",
+            "agendamento_confirmado",
+            "exames_enviados",
+            "exames_recebidos",
+            "questionario_enviado",
+            "questionario_respondido"
+          ]
+        },
+        {
+          "name": "entered_at",
+          "type": "date",
+          "required": true,
+          "system": false
+        },
+        {
+          "name": "exited_at",
+          "type": "date",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "duration_hours",
+          "type": "number",
+          "required": false,
+          "system": false
+        },
+        {
+          "name": "created",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate"]
+        },
+        {
+          "name": "updated",
+          "type": "autodate",
+          "required": false,
+          "system": false,
+          "autodateTriggers": ["onCreate", "onUpdate"]
+        }
+      ],
+      "indexes": [
+        "CREATE INDEX idx_patient_stage_history_patient ON patient_stage_history (patient_id)",
+        "CREATE INDEX idx_patient_stage_history_stage ON patient_stage_history (stage)",
+        "CREATE INDEX idx_patient_stage_history_exited ON patient_stage_history (exited_at)"
       ]
     }
   ]
