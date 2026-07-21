@@ -31,8 +31,8 @@ export const JOURNEY_STAGES: JourneyStageConfig[] = [
     headerClass: 'text-cyan-700',
   },
   {
-    value: 'exames_enviados',
-    label: 'Exames Enviados',
+    value: 'pedido_exames_enviados',
+    label: 'Pedido de Exames Enviados',
     dotClass: 'bg-amber-500',
     headerClass: 'text-amber-700',
   },

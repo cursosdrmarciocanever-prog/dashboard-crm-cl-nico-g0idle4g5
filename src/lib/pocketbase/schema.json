@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-21T13:03:22.874Z",
+  "generatedAt": "2026-07-21T13:07:27.998Z",
   "collections": [
     {
       "name": "users",
@@ -163,7 +163,7 @@
           "selectValues": [
             "novo_lead",
             "agendamento_confirmado",
-            "exames_enviados",
+            "pedido_exames_enviados",
             "exames_recebidos_parcialmente",
             "exames_recebidos_completos",
             "exames_enviados_dr_marcio",
@@ -349,7 +349,7 @@
           "selectValues": [
             "novo_lead",
             "agendamento_confirmado",
-            "exames_enviados",
+            "pedido_exames_enviados",
             "exames_recebidos_parcialmente",
             "exames_recebidos_completos",
             "exames_enviados_dr_marcio",

@@ -7,7 +7,7 @@ export type ChecklistFlag =
   | 'questionnaire_answered_flag'
 
 export const FLAG_TO_STAGE: Record<ChecklistFlag, JourneyStage> = {
-  exams_sent_flag: 'exames_enviados',
+  exams_sent_flag: 'pedido_exames_enviados',
   exams_received_flag: 'exames_recebidos_parcialmente',
   anamnesis_sent_flag: 'questionario_enviado',
   questionnaire_answered_flag: 'questionario_respondido',
@@ -15,7 +15,7 @@ export const FLAG_TO_STAGE: Record<ChecklistFlag, JourneyStage> = {
 
 export function stageToFlags(stage: JourneyStage): Partial<Record<ChecklistFlag, boolean>> {
   switch (stage) {
-    case 'exames_enviados':
+    case 'pedido_exames_enviados':
       return { exams_sent_flag: true }
     case 'exames_recebidos_parcialmente':
       return { exams_received_flag: true, exams_sent_flag: true }
