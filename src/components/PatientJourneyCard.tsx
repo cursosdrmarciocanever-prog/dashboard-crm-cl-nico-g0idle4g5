@@ -1,8 +1,24 @@
 import { useState } from 'react'
 import { format } from 'date-fns'
-import { Phone, Calendar as CalendarIcon, ChevronRight, Globe, AlertTriangle } from 'lucide-react'
+import {
+  Phone,
+  Calendar as CalendarIcon,
+  ChevronRight,
+  Globe,
+  AlertTriangle,
+  Check,
+  Circle,
+  CircleDot,
+  Loader2,
+} from 'lucide-react'
 import type { Patient } from '@/services/patients'
+import { updatePatient } from '@/services/patients'
 import type { StagnationInfo } from '@/lib/stagnation'
+import {
+  POST_CONSULTATION_CHECKLIST,
+  getChecklistStatus,
+  type ChecklistStatus,
+} from '@/lib/post-consultation-checklist'
 import { cn } from '@/lib/utils'
 
 interface PatientJourneyCardProps {
@@ -13,6 +29,27 @@ interface PatientJourneyCardProps {
   onDragEnd: () => void
 }
 
+const statusConfig: Record<
+  ChecklistStatus,
+  { icon: typeof Check; className: string; labelClassName: string }
+> = {
+  completed: {
+    icon: Check,
+    className: 'text-green-600 dark:text-green-400',
+    labelClassName: 'text-muted-foreground line-through',
+  },
+  active: {
+    icon: CircleDot,
+    className: 'text-primary',
+    labelClassName: 'text-foreground font-medium',
+  },
+  pending: {
+    icon: Circle,
+    className: 'text-muted-foreground/50',
+    labelClassName: 'text-muted-foreground/70',
+  },
+}
+
 export function PatientJourneyCard({
   patient,
   stagnation,
@@ -21,7 +58,19 @@ export function PatientJourneyCard({
   onDragEnd,
 }: PatientJourneyCardProps) {
   const [isDragging, setIsDragging] = useState(false)
+  const [updatingStage, setUpdatingStage] = useState<string | null>(null)
   const isStagnant = stagnation?.isStagnant ?? false
+
+  const handleChecklistClick = async (e: React.MouseEvent, stage: typeof patient.journey_stage) => {
+    e.stopPropagation()
+    if (!stage || patient.journey_stage === stage || updatingStage) return
+    setUpdatingStage(stage)
+    try {
+      await updatePatient(patient.id, { journey_stage: stage })
+    } finally {
+      setUpdatingStage(null)
+    }
+  }
 
   return (
     <div
@@ -101,6 +150,40 @@ export function PatientJourneyCard({
           )}
         </div>
       )}
+
+      <div className="mt-2.5 pt-2.5 border-t border-border/60">
+        <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground/60 mb-1.5">
+          Pós-Consulta
+        </p>
+        <div className="space-y-0.5">
+          {POST_CONSULTATION_CHECKLIST.map((item) => {
+            const status = getChecklistStatus(patient.journey_stage, item.stage)
+            const config = statusConfig[status]
+            const Icon = config.icon
+            const isUpdating = updatingStage === item.stage
+
+            return (
+              <button
+                key={item.stage}
+                onClick={(e) => handleChecklistClick(e, item.stage)}
+                disabled={isUpdating || status === 'active'}
+                className={cn(
+                  'flex items-center gap-1.5 w-full text-left px-1.5 py-1 rounded-md transition-colors touch-target',
+                  'hover:bg-muted/60 disabled:cursor-default disabled:opacity-60',
+                  status === 'active' && 'bg-primary/10',
+                )}
+              >
+                {isUpdating ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin text-primary flex-shrink-0" />
+                ) : (
+                  <Icon className={cn('w-3.5 h-3.5 flex-shrink-0', config.className)} />
+                )}
+                <span className={cn('text-xs truncate', config.labelClassName)}>{item.label}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
     </div>
   )
 }
