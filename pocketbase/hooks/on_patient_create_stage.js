@@ -1,11 +1,26 @@
 onRecordAfterCreateSuccess((e) => {
-  const stage = e.record.getString('journey_stage')
-  if (!stage) return e.next()
+  var stage = e.record.getString('journey_stage')
+
+  if (!stage) {
+    try {
+      var patientRecord = $app.findRecordById('patients', e.record.id)
+      patientRecord.set('journey_stage', 'novo_lead')
+      if (!patientRecord.getString('status')) {
+        patientRecord.set('status', 'ativo')
+      }
+      $app.save(patientRecord)
+    } catch (err) {
+      $app
+        .logger()
+        .error('Failed to set default journey stage on patient create', 'error', err.message)
+    }
+    return e.next()
+  }
 
   try {
-    const now = new Date().toISOString()
-    const col = $app.findCollectionByNameOrId('patient_stage_history')
-    const record = new Record(col)
+    var now = new Date().toISOString()
+    var col = $app.findCollectionByNameOrId('patient_stage_history')
+    var record = new Record(col)
     record.set('patient_id', e.record.id)
     record.set('stage', stage)
     record.set('entered_at', now)
