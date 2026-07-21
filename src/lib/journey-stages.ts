@@ -1,7 +1,7 @@
 export type JourneyStage =
   | 'novo_lead'
   | 'agendamento_confirmado'
-  | 'exames_enviados'
+  | 'pedido_exames_enviados'
   | 'exames_recebidos_parcialmente'
   | 'exames_recebidos_completos'
   | 'exames_enviados_dr_marcio'
@@ -9,6 +9,9 @@ export type JourneyStage =
   | 'exames_anexados'
   | 'questionario_enviado'
   | 'questionario_respondido'
+  | 'consulta_realizada'
+  | 'novo_pedido_exames_fornecido'
+  | 'proxima_consulta_agendada'
 
 export interface JourneyStageConfig {
   value: JourneyStage
@@ -77,5 +80,23 @@ export const JOURNEY_STAGES: JourneyStageConfig[] = [
     label: 'Questionário Respondido',
     dotClass: 'bg-green-500',
     headerClass: 'text-green-700',
+  },
+  {
+    value: 'consulta_realizada',
+    label: 'Consulta Realizada',
+    dotClass: 'bg-emerald-500',
+    headerClass: 'text-emerald-700',
+  },
+  {
+    value: 'novo_pedido_exames_fornecido',
+    label: 'Novo Pedido de Exames Fornecido',
+    dotClass: 'bg-lime-500',
+    headerClass: 'text-lime-700',
+  },
+  {
+    value: 'proxima_consulta_agendada',
+    label: 'Data da Próxima Consulta Agendada',
+    dotClass: 'bg-green-600',
+    headerClass: 'text-green-800',
   },
 ]

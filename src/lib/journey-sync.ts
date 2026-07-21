@@ -31,6 +31,27 @@ export function stageToFlags(stage: JourneyStage): Partial<Record<ChecklistFlag,
       return { anamnesis_sent_flag: true }
     case 'questionario_respondido':
       return { questionnaire_answered_flag: true, anamnesis_sent_flag: true }
+    case 'consulta_realizada':
+      return {
+        questionnaire_answered_flag: true,
+        anamnesis_sent_flag: true,
+        exams_sent_flag: true,
+        exams_received_flag: true,
+      }
+    case 'novo_pedido_exames_fornecido':
+      return {
+        questionnaire_answered_flag: true,
+        anamnesis_sent_flag: true,
+        exams_sent_flag: true,
+        exams_received_flag: true,
+      }
+    case 'proxima_consulta_agendada':
+      return {
+        questionnaire_answered_flag: true,
+        anamnesis_sent_flag: true,
+        exams_sent_flag: true,
+        exams_received_flag: true,
+      }
     default:
       return {}
   }

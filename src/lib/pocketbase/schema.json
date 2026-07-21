@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-21T13:10:27.430Z",
+  "generatedAt": "2026-07-21T13:15:20.863Z",
   "collections": [
     {
       "name": "users",
@@ -29,19 +29,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
       "indexes": [
@@ -83,11 +78,7 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": [
-            "ativo",
-            "concluido",
-            "inativo"
-          ]
+          "selectValues": ["ativo", "concluido", "inativo"]
         },
         {
           "name": "doctor_id",
@@ -101,19 +92,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "last_contact_date",
@@ -184,7 +170,10 @@
             "exames_recebidos_dr_marcio_vistos",
             "exames_anexados",
             "questionario_enviado",
-            "questionario_respondido"
+            "questionario_respondido",
+            "consulta_realizada",
+            "novo_pedido_exames_fornecido",
+            "proxima_consulta_agendada"
           ]
         }
       ],
@@ -229,35 +218,24 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": [
-            "scheduled",
-            "completed",
-            "cancelled"
-          ]
+          "selectValues": ["scheduled", "completed", "cancelled"]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
-      "indexes": [
-        "CREATE INDEX idx_appointments_date ON appointments (appointment_date)"
-      ]
+      "indexes": ["CREATE INDEX idx_appointments_date ON appointments (appointment_date)"]
     },
     {
       "name": "scheduled_messages",
@@ -294,30 +272,21 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": [
-            "pending",
-            "sent",
-            "cancelled"
-          ]
+          "selectValues": ["pending", "sent", "cancelled"]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         }
       ],
       "indexes": [
@@ -366,19 +335,14 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate"
-          ]
+          "autodateTriggers": ["onCreate"]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": [
-            "onCreate",
-            "onUpdate"
-          ]
+          "autodateTriggers": ["onCreate", "onUpdate"]
         },
         {
           "name": "stage",
@@ -395,7 +359,10 @@
             "exames_recebidos_dr_marcio_vistos",
             "exames_anexados",
             "questionario_enviado",
-            "questionario_respondido"
+            "questionario_respondido",
+            "consulta_realizada",
+            "novo_pedido_exames_fornecido",
+            "proxima_consulta_agendada"
           ]
         }
       ],
