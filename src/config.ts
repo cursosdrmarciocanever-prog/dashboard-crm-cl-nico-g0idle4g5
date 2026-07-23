@@ -1,6 +1,7 @@
 export const CLINIC_WHATSAPP_NUMBER = '5511999999999'
 
-export const WHATSAPP_WELCOME_MESSAGE = 'Olá, gostaria de mais informações'
+export const WHATSAPP_WELCOME_MESSAGE =
+  'Olá! Vim pelo site da clínica e gostaria de mais informações.'
 
-export const buildWhatsAppUrl = () =>
-  `https://wa.me/${CLINIC_WHATSAPP_NUMBER}?text=${encodeURIComponent(WHATSAPP_WELCOME_MESSAGE)}`
+export const buildWhatsAppUrl = (number?: string, message?: string) =>
+  `https://wa.me/${number ?? CLINIC_WHATSAPP_NUMBER}?text=${encodeURIComponent(message ?? WHATSAPP_WELCOME_MESSAGE)}`

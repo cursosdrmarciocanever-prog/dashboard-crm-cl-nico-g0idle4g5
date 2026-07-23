@@ -25,6 +25,13 @@ export const getPatients = (filter?: string) =>
 
 export const getPatient = (id: string) => pb.collection<Patient>('patients').getOne(id)
 
+export const findPatientByPhone = async (phone: string): Promise<Patient | null> => {
+  const normalized = phone.replace(/\D/g, '')
+  if (!normalized) return null
+  const all = await pb.collection<Patient>('patients').getFullList()
+  return all.find((p) => p.phone && p.phone.replace(/\D/g, '') === normalized) ?? null
+}
+
 export const createPatient = (data: Partial<Patient>) =>
   pb.collection<Patient>('patients').create(data)
 
