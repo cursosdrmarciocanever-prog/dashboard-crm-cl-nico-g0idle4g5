@@ -1,0 +1,57 @@
+# CRM Clinico — deploy na VPS (Docker + Traefik), design de ORIGEM UNICA.
+#
+#   [Traefik :443] --> [web (nginx)] --serve SPA--> navegador
+#                                    \--proxy /api,/_--> [pocketbase :8090]
+#
+# So o `web` fica exposto no Traefik. O PocketBase e' interno (rede `internal`);
+# o navegador o acessa pela MESMA origem (https://crm.clinicacanever.com.br/api),
+# entao nao ha CORS e basta 1 registro DNS + 1 certificado.
+#
+# Variaveis: copie deploy/.env.example para deploy/.env e ajuste.
+
+services:
+  pocketbase:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.pocketbase
+      args:
+        PB_VERSION: ${PB_VERSION:-0.28.4}
+        PB_ARCH: ${PB_ARCH:-linux_amd64}
+    restart: unless-stopped
+    volumes:
+      - pb_data:/pb/pb_data # dados persistentes (SQLite) — sobrevivem a rebuild
+    networks:
+      - internal
+
+  web:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.web
+      args:
+        # Baked no build do Vite. Mesma origem do proprio site (sem CORS).
+        VITE_POCKETBASE_URL: ${CRM_URL:-https://crm.clinicacanever.com.br}
+        VITE_CLINIC_WHATSAPP: ${CLINIC_WHATSAPP:-5544999999999}
+    restart: unless-stopped
+    depends_on:
+      - pocketbase
+    networks:
+      - internal
+      - n8n_default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=n8n_default
+      - traefik.http.routers.crm.rule=Host(`${CRM_HOST:-crm.clinicacanever.com.br}`)
+      - traefik.http.routers.crm.entrypoints=websecure
+      - traefik.http.routers.crm.tls=true
+      # IMPORTANTE: troque `letsencrypt` pelo nome do certresolver do SEU Traefik.
+      # Veja o valor exato no docker-compose do app-financeiro (que ja funciona).
+      - traefik.http.routers.crm.tls.certresolver=${CERT_RESOLVER:-letsencrypt}
+      - traefik.http.services.crm.loadbalancer.server.port=80
+
+networks:
+  internal:
+  n8n_default:
+    external: true # rede ja criada pelo Traefik/n8n na VPS
+
+volumes:
+  pb_data:
