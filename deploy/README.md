@@ -29,7 +29,7 @@ Deve retornar `2.24.107.183`.
 ## Passo 2 — Descobrir a versão do PocketBase do goskip
 
 Abra `https://dashboard-crm-clinico-66ecd.shrd00.internal.goskip.dev/_/` e veja a
-versão no **rodapé** da tela de login do admin (ex.: `v0.28.4`). Anote — vai no
+versão no **rodapé** da tela de login do admin (ex.: `v0.36.9`). Anote — vai no
 `PB_VERSION` do `.env`. Se a versão não bater, as migrations podem falhar.
 
 ## Passo 3 — Clonar o repo na VPS
