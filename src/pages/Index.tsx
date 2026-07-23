@@ -179,7 +179,6 @@ export default function Dashboard() {
           </Table>
         </div>
       </div>
-      </div>
       <FloatingWhatsAppButton />
     </div>
   )
