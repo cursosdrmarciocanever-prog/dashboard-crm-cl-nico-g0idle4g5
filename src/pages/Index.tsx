@@ -18,6 +18,7 @@ import { format, isToday, isAfter, isBefore, addDays } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { NewPatientDialog } from '@/components/NewPatientDialog'
 import { NewAppointmentDialog } from '@/components/NewAppointmentDialog'
+import { FloatingWhatsAppButton } from '@/components/FloatingWhatsAppButton'
 
 export default function Dashboard() {
   const [patients, setPatients] = useState<Patient[]>([])
@@ -178,6 +179,8 @@ export default function Dashboard() {
           </Table>
         </div>
       </div>
+      </div>
+      <FloatingWhatsAppButton />
     </div>
   )
 }
