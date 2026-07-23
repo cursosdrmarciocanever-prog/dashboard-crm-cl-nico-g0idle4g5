@@ -12,6 +12,7 @@ import { Label } from '@/components/ui/label'
 import { MessageCircle, X, Loader2, CheckCircle2 } from 'lucide-react'
 import { createPatient, updatePatient, findPatientByPhone } from '@/services/patients'
 import { useAuth } from '@/hooks/use-auth'
+import { useSettings } from '@/hooks/use-settings'
 import { buildWhatsAppUrl } from '@/config'
 import { cn } from '@/lib/utils'
 
@@ -24,6 +25,7 @@ function formatPhoneInput(raw: string): string {
 }
 
 export function WhatsAppLeadButton() {
+  const { clinicWhatsapp, welcomeMessage } = useSettings()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
   const [name, setName] = useState('')
@@ -93,7 +95,7 @@ export function WhatsAppLeadButton() {
         setSuccessMessage('Novo lead registrado com sucesso! Redirecionando para WhatsApp...')
       }
       setTimeout(() => {
-        window.open(buildWhatsAppUrl(), '_blank', 'noopener,noreferrer')
+        window.open(buildWhatsAppUrl(clinicWhatsapp, welcomeMessage), '_blank', 'noopener,noreferrer')
         setOpen(false)
         setLoading(false)
       }, 1000)

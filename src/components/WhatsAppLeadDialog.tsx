@@ -13,6 +13,7 @@ import { MessageCircle, Loader2, X, CheckCircle2 } from 'lucide-react'
 import { createPatient, updatePatient, findPatientByPhone } from '@/services/patients'
 import { buildWhatsAppUrl } from '@/config'
 import { useAuth } from '@/hooks/use-auth'
+import { useSettings } from '@/hooks/use-settings'
 import { cn } from '@/lib/utils'
 
 interface FieldErrors {
@@ -33,6 +34,7 @@ export function WhatsAppLeadDialog({ open, onOpenChange }: WhatsAppLeadDialogPro
   const [submitError, setSubmitError] = useState<string | null>(null)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const { user } = useAuth()
+  const { clinicWhatsapp, welcomeMessage } = useSettings()
 
   const resetForm = () => {
     setName('')
@@ -98,7 +100,7 @@ export function WhatsAppLeadDialog({ open, onOpenChange }: WhatsAppLeadDialogPro
         setSuccessMessage('Novo lead registrado com sucesso! Redirecionando para WhatsApp...')
       }
       setTimeout(() => {
-        window.open(buildWhatsAppUrl(), '_blank')
+        window.open(buildWhatsAppUrl(clinicWhatsapp, welcomeMessage), '_blank')
         resetForm()
         onOpenChange(false)
         setLoading(false)

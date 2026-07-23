@@ -1,0 +1,8 @@
+node_modules
+dist
+dist-ssr
+.git
+.env
+*.local
+.DS_Store
+pocketbase/pb_data

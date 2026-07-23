@@ -61,7 +61,7 @@ export default function Dashboard() {
 
   const filteredPatients = useMemo(() => {
     return patients.slice(0, 10)
-  }, [patients, filter])
+  }, [patients])
 
   return (
     <div className="space-y-8 animate-fade-in">
