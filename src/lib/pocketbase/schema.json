@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-07-23T10:06:53.050Z",
+  "generatedAt": "2026-07-23T21:54:45.707Z",
   "collections": [
     {
       "name": "users",
@@ -29,14 +29,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -78,7 +83,11 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["ativo", "concluido", "inativo"]
+          "selectValues": [
+            "ativo",
+            "concluido",
+            "inativo"
+          ]
         },
         {
           "name": "doctor_id",
@@ -92,14 +101,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "last_contact_date",
@@ -218,24 +232,35 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["scheduled", "completed", "cancelled"]
+          "selectValues": [
+            "scheduled",
+            "completed",
+            "cancelled"
+          ]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
-      "indexes": ["CREATE INDEX idx_appointments_date ON appointments (appointment_date)"]
+      "indexes": [
+        "CREATE INDEX idx_appointments_date ON appointments (appointment_date)"
+      ]
     },
     {
       "name": "scheduled_messages",
@@ -272,21 +297,30 @@
           "type": "select",
           "required": true,
           "system": false,
-          "selectValues": ["pending", "sent", "cancelled"]
+          "selectValues": [
+            "pending",
+            "sent",
+            "cancelled"
+          ]
         },
         {
           "name": "created",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         }
       ],
       "indexes": [
@@ -335,14 +369,19 @@
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate"]
+          "autodateTriggers": [
+            "onCreate"
+          ]
         },
         {
           "name": "updated",
           "type": "autodate",
           "required": false,
           "system": false,
-          "autodateTriggers": ["onCreate", "onUpdate"]
+          "autodateTriggers": [
+            "onCreate",
+            "onUpdate"
+          ]
         },
         {
           "name": "stage",
