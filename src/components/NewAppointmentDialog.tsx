@@ -58,7 +58,7 @@ export function NewAppointmentDialog() {
       setPatientId('')
       setDate('')
       setNotes('')
-    } catch (err) {
+    } catch {
       toast({ title: 'Erro', description: 'Falha ao agendar.', variant: 'destructive' })
     } finally {
       setLoading(false)

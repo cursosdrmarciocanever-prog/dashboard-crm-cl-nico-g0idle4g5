@@ -48,7 +48,7 @@ export function NewPatientDialog() {
       setName('')
       setPhone('')
       setStatus('ativo')
-    } catch (err) {
+    } catch {
       toast({ title: 'Erro', description: 'Ocorreu um erro ao cadastrar.', variant: 'destructive' })
     } finally {
       setLoading(false)
