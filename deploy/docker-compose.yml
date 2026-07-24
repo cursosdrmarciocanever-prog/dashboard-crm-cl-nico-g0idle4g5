@@ -20,6 +20,12 @@ services:
     restart: unless-stopped
     volumes:
       - pb_data:/pb/pb_data # dados persistentes (SQLite) — sobrevivem a rebuild
+    environment:
+      # Integracao WhatsApp (Evolution API). Usadas pelos hooks wa_dispatcher/wa_inbound.
+      EVOLUTION_URL: ${EVOLUTION_URL:-https://evo.clinicacanever.com.br}
+      EVOLUTION_API_KEY: ${EVOLUTION_API_KEY:-}
+      EVOLUTION_INSTANCE: ${EVOLUTION_INSTANCE:-clinica}
+      WA_WEBHOOK_TOKEN: ${WA_WEBHOOK_TOKEN:-}
     networks:
       - internal
 
