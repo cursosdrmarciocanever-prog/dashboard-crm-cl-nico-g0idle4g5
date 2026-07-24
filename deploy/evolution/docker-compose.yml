@@ -1,0 +1,77 @@
+# Evolution API (gateway de WhatsApp) — stack isolado: API + PostgreSQL + Redis.
+# Exposto no Traefik em https://evo.clinicacanever.com.br (protegido por API key).
+# Postgres e Redis ficam só na rede interna.
+#
+# Variaveis: copie .env.example para .env e defina POSTGRES_PASSWORD e
+# AUTHENTICATION_API_KEY (gere valores fortes — veja o README).
+
+services:
+  evolution-api:
+    image: evoapicloud/evolution-api:v2.3.7
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    volumes:
+      - evolution_instances:/evolution/instances
+    environment:
+      SERVER_URL: ${EVO_URL:-https://evo.clinicacanever.com.br}
+      AUTHENTICATION_API_KEY: ${AUTHENTICATION_API_KEY:?defina no .env}
+      # Banco (a senha vem de POSTGRES_PASSWORD — sem duplicar)
+      DATABASE_PROVIDER: postgresql
+      DATABASE_CONNECTION_URI: postgresql://${POSTGRES_USER:-evolution}:${POSTGRES_PASSWORD:?defina no .env}@postgres:5432/${POSTGRES_DB:-evolution}?schema=public
+      DATABASE_CONNECTION_CLIENT_NAME: evolution_crm
+      DATABASE_SAVE_DATA_INSTANCE: "true"
+      DATABASE_SAVE_DATA_NEW_MESSAGE: "true"
+      DATABASE_SAVE_MESSAGE_UPDATE: "true"
+      DATABASE_SAVE_DATA_CONTACTS: "true"
+      DATABASE_SAVE_DATA_CHATS: "true"
+      # Cache Redis
+      CACHE_REDIS_ENABLED: "true"
+      CACHE_REDIS_URI: redis://redis:6379/6
+      CACHE_REDIS_PREFIX_KEY: evolution
+      CACHE_REDIS_SAVE_INSTANCES: "false"
+      CACHE_LOCAL_ENABLED: "false"
+    networks:
+      - internal
+      - n8n_default
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=n8n_default
+      - traefik.http.routers.evo.rule=Host(`${EVO_HOST:-evo.clinicacanever.com.br}`)
+      - traefik.http.routers.evo.entrypoints=websecure
+      - traefik.http.routers.evo.tls=true
+      - traefik.http.routers.evo.tls.certresolver=${CERT_RESOLVER:-mytlschallenge}
+      - traefik.http.services.evo.loadbalancer.server.port=8080
+
+  postgres:
+    image: postgres:15
+    restart: unless-stopped
+    command: ["postgres", "-c", "max_connections=1000", "-c", "listen_addresses=*"]
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-evolution}
+      POSTGRES_USER: ${POSTGRES_USER:-evolution}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina no .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    networks:
+      - internal
+
+networks:
+  internal:
+  n8n_default:
+    external: true
+
+volumes:
+  evolution_instances:
+  postgres_data:
+  redis_data:
