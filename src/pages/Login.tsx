@@ -9,8 +9,8 @@ import { Activity, Loader2 } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
 
 export default function Login() {
-  const [email, setEmail] = useState('marciocanever@hotmail.com')
-  const [password, setPassword] = useState('Skip@Pass')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const { signIn } = useAuth()
   const navigate = useNavigate()
