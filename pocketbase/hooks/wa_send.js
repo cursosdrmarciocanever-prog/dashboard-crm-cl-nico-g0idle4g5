@@ -1,11 +1,22 @@
 // Envio de mensagens de saida do Inbox: quando o CRM cria uma `messages` com
 // direction='out' e status='queued', envia via Evolution API e atualiza o status.
 // A chave do Evolution fica so no servidor (nunca exposta ao front).
+//
+// OBS: no PocketBase JSVM, o handler roda em contexto isolado e NAO acessa
+// funcoes/variaveis do escopo do arquivo. Por isso o helper fica DENTRO do handler.
 
 onRecordAfterCreateSuccess((e) => {
   const rec = e.record
   if (rec.getString('direction') !== 'out' || rec.getString('status') !== 'queued') {
     return e.next()
+  }
+
+  const waNormalizePhone = (raw) => {
+    if (!raw) return ''
+    let d = ('' + raw).replace(/\D/g, '')
+    if (!d) return ''
+    if (d.length <= 11) d = '55' + d
+    return d
   }
 
   const evoUrl = $os.getenv('EVOLUTION_URL')
@@ -35,17 +46,6 @@ onRecordAfterCreateSuccess((e) => {
       timeout: 20,
     })
 
-    // Log de diagnostico (temporario): mostra o que o Evolution respondeu.
-    let respBody = ''
-    try {
-      respBody = res.json ? JSON.stringify(res.json) : '' + res.body
-    } catch (_) {
-      respBody = '(corpo ilegivel)'
-    }
-    $app
-      .logger()
-      .info('[wa_send] evolution', 'status', res.statusCode, 'phone', phone, 'body', String(respBody).substring(0, 400))
-
     if (res.statusCode >= 200 && res.statusCode < 300) {
       rec.set('status', 'sent')
       try {
@@ -72,12 +72,3 @@ onRecordAfterCreateSuccess((e) => {
 
   return e.next()
 }, 'messages')
-
-// Normaliza telefone BR para o formato do WhatsApp (DDI+DDD+numero, so digitos).
-function waNormalizePhone(raw) {
-  if (!raw) return ''
-  let d = ('' + raw).replace(/\D/g, '')
-  if (!d) return ''
-  if (d.length <= 11) d = '55' + d
-  return d
-}

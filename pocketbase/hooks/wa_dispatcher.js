@@ -13,6 +13,15 @@ cronAdd('wa_dispatcher', '* * * * *', () => {
     return // integracao ainda nao configurada
   }
 
+  // Helper inline (o handler nao acessa funcoes do escopo do arquivo no JSVM).
+  const waNormalizePhone = (raw) => {
+    if (!raw) return ''
+    let d = ('' + raw).replace(/\D/g, '')
+    if (!d) return ''
+    if (d.length <= 11) d = '55' + d
+    return d
+  }
+
   const BATCH = 10 // no maximo 10 envios por minuto (anti-banimento)
   const now = new Date().toISOString().replace('T', ' ') // formato datetime do PocketBase
 
@@ -72,12 +81,3 @@ cronAdd('wa_dispatcher', '* * * * *', () => {
     }
   }
 })
-
-// Normaliza telefone BR para o formato do WhatsApp (DDI+DDD+numero, so digitos).
-function waNormalizePhone(raw) {
-  if (!raw) return ''
-  let d = ('' + raw).replace(/\D/g, '')
-  if (!d) return ''
-  if (d.length <= 11) d = '55' + d // sem DDI -> assume Brasil
-  return d
-}
