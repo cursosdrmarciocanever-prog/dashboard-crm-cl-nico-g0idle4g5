@@ -55,26 +55,47 @@ routerAdd('POST', '/api/wa-inbound', (e) => {
     $app.logger().error('[wa_inbound] busca paciente falhou', 'error', err.message)
   }
 
+  let patientId = null
+  let result = null
   try {
     if (existing) {
       existing.set('last_contact_date', now)
       $app.save(existing)
-      return e.json(200, { matched: existing.id })
+      patientId = existing.id
+      result = { matched: existing.id }
+    } else {
+      const col = $app.findCollectionByNameOrId('patients')
+      const rec = new Record(col)
+      rec.set('name', pushName || 'Lead WhatsApp ' + phoneDigits.slice(-4))
+      rec.set('phone', phoneDigits)
+      rec.set('status', 'ativo')
+      rec.set('journey_stage', 'novo_lead')
+      rec.set('traffic_platform', 'whatsapp')
+      rec.set('last_contact_date', now)
+      $app.save(rec)
+      patientId = rec.id
+      result = { created: rec.id }
+      $app.logger().info('[wa_inbound] lead criado', 'phone', phoneDigits, 'name', pushName)
     }
-
-    const col = $app.findCollectionByNameOrId('patients')
-    const rec = new Record(col)
-    rec.set('name', pushName || 'Lead WhatsApp ' + phoneDigits.slice(-4))
-    rec.set('phone', phoneDigits)
-    rec.set('status', 'ativo')
-    rec.set('journey_stage', 'novo_lead')
-    rec.set('traffic_platform', 'whatsapp')
-    rec.set('last_contact_date', now)
-    $app.save(rec)
-    $app.logger().info('[wa_inbound] lead criado', 'phone', phoneDigits, 'name', pushName)
-    return e.json(200, { created: rec.id })
   } catch (err) {
     $app.logger().error('[wa_inbound] salvar lead falhou', 'error', err.message)
     return e.json(500, { error: 'save failed' })
   }
+
+  // Grava a mensagem recebida no historico (Inbox de Conversas)
+  try {
+    const msgCol = $app.findCollectionByNameOrId('messages')
+    const msg = new Record(msgCol)
+    msg.set('patient_id', patientId)
+    msg.set('phone', phoneDigits)
+    msg.set('direction', 'in')
+    msg.set('text', text || '[mídia/anexo]')
+    msg.set('status', 'received')
+    msg.set('wa_message_id', (data.key && data.key.id) || '')
+    $app.save(msg)
+  } catch (err) {
+    $app.logger().error('[wa_inbound] gravar mensagem falhou', 'error', err.message)
+  }
+
+  return e.json(200, result)
 })

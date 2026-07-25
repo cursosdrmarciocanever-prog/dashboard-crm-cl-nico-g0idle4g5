@@ -7,6 +7,7 @@ import {
   Activity,
   KanbanSquare,
   MessageSquare,
+  MessagesSquare,
   TrendingUp,
 } from 'lucide-react'
 import {
@@ -24,6 +25,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: Users, label: 'Pacientes', path: '/pacientes' },
   { icon: KanbanSquare, label: 'Jornada do Paciente', path: '/jornada' },
+  { icon: MessagesSquare, label: 'Conversas', path: '/conversas' },
   { icon: Calendar, label: 'Agendamentos', path: '/agendamentos' },
   { icon: MessageSquare, label: 'Mensagens Agendadas', path: '/mensagens' },
   { icon: TrendingUp, label: 'Performance', path: '/performance' },
