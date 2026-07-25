@@ -8,6 +8,7 @@ import {
   KanbanSquare,
   MessageSquare,
   MessagesSquare,
+  Bot,
   TrendingUp,
 } from 'lucide-react'
 import {
@@ -28,6 +29,7 @@ const menuItems = [
   { icon: MessagesSquare, label: 'Conversas', path: '/conversas' },
   { icon: Calendar, label: 'Agendamentos', path: '/agendamentos' },
   { icon: MessageSquare, label: 'Mensagens Agendadas', path: '/mensagens' },
+  { icon: Bot, label: 'Automações', path: '/automacoes' },
   { icon: TrendingUp, label: 'Performance', path: '/performance' },
   { icon: Settings, label: 'Configurações', path: '/configuracoes' },
 ]

@@ -13,6 +13,7 @@ import Appointments from './pages/Appointments'
 import PatientJourney from './pages/PatientJourney'
 import ScheduledMessages from './pages/ScheduledMessages'
 import Conversas from './pages/Conversas'
+import Automacoes from './pages/Automacoes'
 import Performance from './pages/Performance'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/agendamentos" element={<Appointments />} />
             <Route path="/conversas" element={<Conversas />} />
             <Route path="/mensagens" element={<ScheduledMessages />} />
+            <Route path="/automacoes" element={<Automacoes />} />
             <Route path="/performance" element={<Performance />} />
             <Route path="/configuracoes" element={<Settings />} />
           </Route>
