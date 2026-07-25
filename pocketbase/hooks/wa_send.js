@@ -35,6 +35,17 @@ onRecordAfterCreateSuccess((e) => {
       timeout: 20,
     })
 
+    // Log de diagnostico (temporario): mostra o que o Evolution respondeu.
+    let respBody = ''
+    try {
+      respBody = res.json ? JSON.stringify(res.json) : '' + res.body
+    } catch (_) {
+      respBody = '(corpo ilegivel)'
+    }
+    $app
+      .logger()
+      .info('[wa_send] evolution', 'status', res.statusCode, 'phone', phone, 'body', String(respBody).substring(0, 400))
+
     if (res.statusCode >= 200 && res.statusCode < 300) {
       rec.set('status', 'sent')
       try {
