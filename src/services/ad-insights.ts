@@ -68,6 +68,29 @@ const CONSULTATION_STAGES = new Set([
 export const getAdInsights = (filter?: string) =>
   pb.collection<AdInsight>('ad_insights').getFullList({ filter, sort: 'date' })
 
+export interface CampaignOption {
+  campaign: string
+  platform: string
+}
+
+// Lista as campanhas distintas presentes em `ad_insights`, para alimentar o
+// seletor de origem no cadastro do paciente. Retorna [] se a coleção ainda não
+// existir (integração não configurada) — o chamador cai no input de texto.
+export const getCampaignOptions = async (): Promise<CampaignOption[]> => {
+  let rows: AdInsight[]
+  try {
+    rows = await pb.collection<AdInsight>('ad_insights').getFullList({ fields: 'campaign,platform' })
+  } catch {
+    return []
+  }
+  const seen = new Map<string, CampaignOption>()
+  for (const row of rows) {
+    const name = (row.campaign || '').trim()
+    if (name && !seen.has(name)) seen.set(name, { campaign: name, platform: row.platform })
+  }
+  return Array.from(seen.values()).sort((a, b) => a.campaign.localeCompare(b.campaign))
+}
+
 export function computeAccountTotals(insights: AdInsight[]): AccountTotals {
   const spend = sum(insights, 'spend')
   const impressions = sum(insights, 'impressions')

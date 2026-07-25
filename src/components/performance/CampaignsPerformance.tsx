@@ -90,10 +90,10 @@ export function CampaignsPerformance() {
           </div>
           <h3 className="text-lg font-bold">Nenhum dado de campanha ainda</h3>
           <p className="text-sm text-muted-foreground max-w-md">
-            Assim que a sincronização com o Meta Ads for configurada (variável{' '}
-            <code className="text-xs bg-muted px-1.5 py-0.5 rounded">WINDSOR_API_KEY</code> no
-            servidor), os relatórios de investimento, cliques e custo por lead aparecerão aqui
-            automaticamente.
+            Configure a integração com o Meta Ads em{' '}
+            <span className="font-medium text-foreground">Configurações → Integração com Meta Ads</span>{' '}
+            e clique em <span className="font-medium text-foreground">Sincronizar agora</span>. Os
+            relatórios de investimento, cliques e custo por lead aparecerão aqui automaticamente.
           </p>
         </CardContent>
       </Card>

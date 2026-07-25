@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Patient, updatePatient } from '@/services/patients'
+import { getCampaignOptions, type CampaignOption } from '@/services/ad-insights'
 import { JOURNEY_STAGES, type JourneyStage } from '@/lib/journey-stages'
 import { FLAG_TO_STAGE, type ChecklistFlag } from '@/lib/journey-sync'
 import { cn } from '@/lib/utils'
@@ -63,10 +64,17 @@ export function PatientDetailPanel({
   onUpdated,
 }: PatientDetailPanelProps) {
   const [local, setLocal] = useState<Patient | null>(patient)
+  const [campaignOptions, setCampaignOptions] = useState<CampaignOption[]>([])
 
   useEffect(() => {
     setLocal(patient)
   }, [patient])
+
+  useEffect(() => {
+    getCampaignOptions()
+      .then(setCampaignOptions)
+      .catch(() => {})
+  }, [])
 
   const handleFlagToggle = async (flag: string, value: boolean) => {
     if (!local) return
@@ -154,20 +162,59 @@ export function PatientDetailPanel({
                   <Globe className="w-4 h-4 text-muted-foreground" />
                   <h4 className="text-sm font-semibold text-foreground">Origem do Tráfego</h4>
                 </div>
-                {TRAFFIC_FIELDS.map((field) => (
-                  <div key={field.key} className="space-y-1">
-                    <Label className="text-xs text-muted-foreground">{field.label}</Label>
-                    <Input
-                      value={(local[field.key as keyof Patient] as string) || ''}
-                      onChange={(e) =>
-                        setLocal((prev) => (prev ? { ...prev, [field.key]: e.target.value } : prev))
-                      }
-                      onBlur={(e) => handleTrafficBlur(field.key, e.target.value)}
-                      placeholder={`Ex: ${field.label}`}
-                      className="h-9"
-                    />
-                  </div>
-                ))}
+                {TRAFFIC_FIELDS.map((field) => {
+                  const value = (local[field.key as keyof Patient] as string) || ''
+                  // Campo de campanha: usa dropdown alimentado por `ad_insights`
+                  // quando ha campanhas sincronizadas; senao, cai no texto livre.
+                  if (field.key === 'campaign_name' && campaignOptions.length > 0) {
+                    const NONE = '__none__'
+                    const known = campaignOptions.some((o) => o.campaign === value)
+                    return (
+                      <div key={field.key} className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">{field.label}</Label>
+                        <Select
+                          value={value || NONE}
+                          onValueChange={(v) => {
+                            const next = v === NONE ? '' : v
+                            setLocal((prev) => (prev ? { ...prev, campaign_name: next } : prev))
+                            handleTrafficBlur('campaign_name', next)
+                          }}
+                        >
+                          <SelectTrigger className="h-9">
+                            <SelectValue placeholder="Selecione a campanha" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value={NONE}>— Nenhuma —</SelectItem>
+                            {value && !known && (
+                              <SelectItem value={value}>{value} (atual)</SelectItem>
+                            )}
+                            {campaignOptions.map((o) => (
+                              <SelectItem key={o.campaign} value={o.campaign}>
+                                {o.campaign}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    )
+                  }
+                  return (
+                    <div key={field.key} className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">{field.label}</Label>
+                      <Input
+                        value={value}
+                        onChange={(e) =>
+                          setLocal((prev) =>
+                            prev ? { ...prev, [field.key]: e.target.value } : prev,
+                          )
+                        }
+                        onBlur={(e) => handleTrafficBlur(field.key, e.target.value)}
+                        placeholder={`Ex: ${field.label}`}
+                        className="h-9"
+                      />
+                    </div>
+                  )
+                })}
               </div>
 
               <div className="space-y-2">
