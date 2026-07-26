@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { getPatients, updatePatient, deletePatient, Patient } from '@/services/patients'
+import { listPatients, updatePatient, deletePatient, Patient } from '@/services/patients'
 import {
   Table,
   TableBody,
@@ -33,11 +33,13 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
-import { Search, Pencil, Trash2, Loader2, Save } from 'lucide-react'
+import { Search, Pencil, Trash2, Loader2, Save, ChevronLeft, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRealtime } from '@/hooks/use-realtime'
 import { useToast } from '@/hooks/use-toast'
 import { NewPatientDialog } from '@/components/NewPatientDialog'
+
+const PER_PAGE = 50
 
 const STAGE_LABELS: Record<string, string> = {
   novo_lead: 'Novo lead',
@@ -76,29 +78,60 @@ export default function Patients() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState(searchParams.get('q') || '')
+  const [page, setPage] = useState(1)
+  const [totalPages, setTotalPages] = useState(1)
+  const [totalItems, setTotalItems] = useState(0)
+  const [loading, setLoading] = useState(true)
+
   const [selected, setSelected] = useState<Patient | null>(null)
   const [editing, setEditing] = useState(false)
   const [form, setForm] = useState<EditForm | null>(null)
   const [saving, setSaving] = useState(false)
   const { toast } = useToast()
 
-  const load = async () => {
-    const data = await getPatients()
-    setPatients(data)
-  }
-
-  useEffect(() => {
-    load()
-  }, [])
-  useRealtime('patients', load)
-
-  useEffect(() => {
-    if (searchParams.has('q')) {
-      setSearch(searchParams.get('q')!)
+  const load = useCallback(async (p: number, q: string) => {
+    setLoading(true)
+    try {
+      const res = await listPatients(p, PER_PAGE, q)
+      setPatients(res.items)
+      setTotalPages(res.totalPages || 1)
+      setTotalItems(res.totalItems || 0)
+    } catch {
+      // ignora
+    } finally {
+      setLoading(false)
     }
+  }, [])
+
+  // Carga inicial
+  useEffect(() => {
+    load(1, search)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Busca (debounce) — reinicia para a página 1
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setPage(1)
+      load(1, search)
+    }, 350)
+    return () => clearTimeout(t)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [search])
+
+  // Sincroniza com ?q vindo da busca do cabeçalho
+  useEffect(() => {
+    if (searchParams.has('q')) setSearch(searchParams.get('q') || '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams])
 
-  const filtered = patients.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+  useRealtime('patients', () => load(page, search))
+
+  const goToPage = (p: number) => {
+    const next = Math.min(Math.max(1, p), totalPages)
+    setPage(next)
+    load(next, search)
+  }
 
   const openPatient = (p: Patient) => {
     setSelected(p)
@@ -126,7 +159,7 @@ export default function Patients() {
         status: form.status,
         journey_stage: form.journey_stage,
       })
-      await load()
+      await load(page, search)
       setEditing(false)
       setSelected(null)
       toast({ title: 'Salvo', description: 'Paciente atualizado.' })
@@ -140,7 +173,7 @@ export default function Patients() {
   const handleDelete = async (id: string) => {
     try {
       await deletePatient(id)
-      await load()
+      await load(page, search)
       setSelected(null)
       toast({ title: 'Excluído', description: 'O lead foi removido.' })
     } catch {
@@ -156,16 +189,19 @@ export default function Patients() {
       </div>
 
       <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
-        <div className="p-5 border-b flex items-center gap-4 bg-muted/10">
+        <div className="p-5 border-b flex items-center justify-between gap-4 bg-muted/10 flex-wrap">
           <div className="relative max-w-sm w-full">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Buscar pacientes por nome..."
+              placeholder="Buscar por nome ou telefone..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9 bg-background"
             />
           </div>
+          <span className="text-sm text-muted-foreground">
+            {totalItems} paciente{totalItems === 1 ? '' : 's'}
+          </span>
         </div>
         <Table>
           <TableHeader>
@@ -179,47 +215,85 @@ export default function Patients() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filtered.length === 0 && (
+            {loading && (
+              <TableRow>
+                <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                  <Loader2 className="w-5 h-5 animate-spin mx-auto" />
+                </TableCell>
+              </TableRow>
+            )}
+            {!loading && patients.length === 0 && (
               <TableRow>
                 <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                   Nenhum paciente localizado
                 </TableCell>
               </TableRow>
             )}
-            {filtered.map((p) => (
-              <TableRow key={p.id}>
-                <TableCell className="font-medium">{p.name}</TableCell>
-                <TableCell className="text-muted-foreground">{p.phone || '-'}</TableCell>
-                <TableCell className="text-muted-foreground">
-                  {originLabel(p.traffic_platform)}
-                </TableCell>
-                <TableCell className="text-muted-foreground">{stageLabel(p.journey_stage)}</TableCell>
-                <TableCell>
-                  <Badge
-                    variant="outline"
-                    className={cn('font-medium', {
-                      'bg-green-100 text-green-800 border-green-200': p.status === 'ativo',
-                      'bg-blue-100 text-blue-800 border-blue-200': p.status === 'concluido',
-                      'bg-gray-100 text-gray-600 border-gray-200': p.status === 'inativo',
-                    })}
-                  >
-                    {p.status.charAt(0).toUpperCase() + p.status.slice(1)}
-                  </Badge>
-                </TableCell>
-                <TableCell className="text-right">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-primary hover:text-primary/80"
-                    onClick={() => openPatient(p)}
-                  >
-                    Ver Detalhes
-                  </Button>
-                </TableCell>
-              </TableRow>
-            ))}
+            {!loading &&
+              patients.map((p) => (
+                <TableRow key={p.id}>
+                  <TableCell className="font-medium">{p.name}</TableCell>
+                  <TableCell className="text-muted-foreground">{p.phone || '-'}</TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {originLabel(p.traffic_platform)}
+                  </TableCell>
+                  <TableCell className="text-muted-foreground">
+                    {stageLabel(p.journey_stage)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={cn('font-medium', {
+                        'bg-green-100 text-green-800 border-green-200': p.status === 'ativo',
+                        'bg-blue-100 text-blue-800 border-blue-200': p.status === 'concluido',
+                        'bg-gray-100 text-gray-600 border-gray-200': p.status === 'inativo',
+                      })}
+                    >
+                      {p.status.charAt(0).toUpperCase() + p.status.slice(1)}
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-primary hover:text-primary/80"
+                      onClick={() => openPatient(p)}
+                    >
+                      Ver Detalhes
+                    </Button>
+                  </TableCell>
+                </TableRow>
+              ))}
           </TableBody>
         </Table>
+
+        {totalPages > 1 && (
+          <div className="flex items-center justify-between px-5 py-3 border-t bg-muted/5">
+            <span className="text-sm text-muted-foreground">
+              Página {page} de {totalPages}
+            </span>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                disabled={page <= 1 || loading}
+                onClick={() => goToPage(page - 1)}
+              >
+                <ChevronLeft className="w-4 h-4" /> Anterior
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1"
+                disabled={page >= totalPages || loading}
+                onClick={() => goToPage(page + 1)}
+              >
+                Próxima <ChevronRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       <Dialog open={!!selected} onOpenChange={(o) => !o && (setSelected(null), setEditing(false))}>
@@ -247,13 +321,18 @@ export default function Patients() {
               />
               <DetailRow
                 label="Cadastrado em"
-                value={selected.created ? format(new Date(selected.created), 'dd/MM/yyyy HH:mm') : '-'}
+                value={
+                  selected.created ? format(new Date(selected.created), 'dd/MM/yyyy HH:mm') : '-'
+                }
               />
 
               <div className="flex justify-between gap-2 pt-3">
                 <AlertDialog>
                   <AlertDialogTrigger asChild>
-                    <Button variant="outline" className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10">
+                    <Button
+                      variant="outline"
+                      className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10"
+                    >
                       <Trash2 className="w-4 h-4" /> Excluir
                     </Button>
                   </AlertDialogTrigger>
@@ -288,7 +367,10 @@ export default function Patients() {
             <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Nome</Label>
-                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+                <Input
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
               </div>
               <div className="space-y-2">
                 <Label>Telefone</Label>
@@ -338,7 +420,11 @@ export default function Patients() {
                   Cancelar
                 </Button>
                 <Button onClick={handleSave} disabled={saving} className="gap-1.5">
-                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  {saving ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
                   Salvar
                 </Button>
               </div>

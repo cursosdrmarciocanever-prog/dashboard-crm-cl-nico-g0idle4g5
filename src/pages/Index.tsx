@@ -11,7 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { getPatients, Patient } from '@/services/patients'
+import { listPatients, Patient } from '@/services/patients'
 import { getAppointments, Appointment } from '@/services/appointments'
 import { useRealtime } from '@/hooks/use-realtime'
 import { format, isToday, isAfter, isBefore, addDays } from 'date-fns'
@@ -22,16 +22,18 @@ import { FloatingWhatsAppButton } from '@/components/FloatingWhatsAppButton'
 
 export default function Dashboard() {
   const [patients, setPatients] = useState<Patient[]>([])
+  const [totalPatients, setTotalPatients] = useState(0)
   const [appointments, setAppointments] = useState<Appointment[]>([])
   const [filter, setFilter] = useState<'all' | 'today' | 'next7days'>('all')
 
   const loadData = async () => {
     try {
-      const [pData, aData] = await Promise.all([
-        getPatients(),
+      const [pRes, aData] = await Promise.all([
+        listPatients(1, 10),
         getAppointments('status = "scheduled"'),
       ])
-      setPatients(pData)
+      setPatients(pRes.items)
+      setTotalPatients(pRes.totalItems || 0)
       setAppointments(aData)
     } catch (e) {
       console.error(e)
@@ -81,7 +83,7 @@ export default function Dashboard() {
           <CardContent className="p-6 flex items-center justify-between">
             <div>
               <p className="text-sm font-medium text-muted-foreground">Pacientes Cadastrados</p>
-              <h3 className="text-3xl font-bold mt-2">{patients.length}</h3>
+              <h3 className="text-3xl font-bold mt-2">{totalPatients}</h3>
             </div>
             <div className="bg-primary/10 p-4 rounded-full">
               <Users className="w-6 h-6 text-primary" />
