@@ -19,6 +19,11 @@ export interface Patient extends RecordModel {
   ad_set_name?: string
   ad_name?: string
   imported?: boolean
+  implant_active?: boolean
+  implant_placed_at?: string
+  implant_duration_months?: number
+  implant_expires_at?: string
+  implant_returned_at?: string
 }
 
 export const getPatients = (filter?: string) =>

@@ -10,6 +10,7 @@ import {
   MessageSquare,
   MessagesSquare,
   Bot,
+  Syringe,
   TrendingUp,
 } from 'lucide-react'
 import {
@@ -28,6 +29,7 @@ const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: Users, label: 'Pacientes', path: '/pacientes' },
   { icon: Upload, label: 'Importar Leads', path: '/importar' },
+  { icon: Syringe, label: 'Implantes', path: '/implantes' },
   { icon: KanbanSquare, label: 'Jornada do Paciente', path: '/jornada' },
   { icon: MessagesSquare, label: 'Conversas', path: '/conversas' },
   { icon: Calendar, label: 'Agendamentos', path: '/agendamentos' },
