@@ -6,6 +6,14 @@ export interface ClinicSettings extends RecordModel {
   clinic_name?: string
   clinic_whatsapp?: string
   welcome_message?: string
+  // Integração Meta Ads / Windsor.ai (configurável pela tela de Configurações)
+  windsor_api_key?: string
+  windsor_connector?: string
+  windsor_account_id?: string
+  windsor_date_preset?: string
+  meta_sync_requested?: boolean
+  meta_last_sync?: string
+  meta_last_status?: string
 }
 
 // Busca o registro unico de configuracao da clinica (key = 'clinic').
@@ -21,3 +29,8 @@ export const getClinicSettings = async (): Promise<ClinicSettings | null> => {
 
 export const updateClinicSettings = (id: string, data: Partial<ClinicSettings>) =>
   pb.collection<ClinicSettings>('settings').update(id, data)
+
+// Solicita uma sincronização imediata do Meta Ads. O hook `meta_sync` (que roda
+// a cada poucos minutos no PocketBase) detecta o flag, sincroniza e o limpa.
+export const requestMetaSync = (id: string) =>
+  pb.collection<ClinicSettings>('settings').update(id, { meta_sync_requested: true })

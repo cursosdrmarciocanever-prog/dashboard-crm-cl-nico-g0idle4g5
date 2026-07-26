@@ -17,11 +17,14 @@ import { Search } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRealtime } from '@/hooks/use-realtime'
 import { NewPatientDialog } from '@/components/NewPatientDialog'
+import { PatientDetailPanel } from '@/components/PatientDetailPanel'
 
 export default function Patients() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState(searchParams.get('q') || '')
+  const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [panelOpen, setPanelOpen] = useState(false)
 
   const load = async () => {
     const data = await getPatients()
@@ -40,6 +43,12 @@ export default function Patients() {
   }, [searchParams])
 
   const filtered = patients.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+  const selectedPatient = patients.find((p) => p.id === selectedId) ?? null
+
+  const handleViewDetails = (patient: Patient) => {
+    setSelectedId(patient.id)
+    setPanelOpen(true)
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -98,7 +107,12 @@ export default function Patients() {
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right">
-                  <Button variant="ghost" size="sm" className="text-primary hover:text-primary/80">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-primary hover:text-primary/80"
+                    onClick={() => handleViewDetails(p)}
+                  >
                     Ver Detalhes
                   </Button>
                 </TableCell>
@@ -107,6 +121,13 @@ export default function Patients() {
           </TableBody>
         </Table>
       </div>
+
+      <PatientDetailPanel
+        patient={selectedPatient}
+        open={panelOpen}
+        onOpenChange={setPanelOpen}
+        onUpdated={load}
+      />
     </div>
   )
 }
