@@ -2,13 +2,15 @@
 // template ativo (stage_templates), agenda uma mensagem em scheduled_messages;
 // o disparador (wa_dispatcher) envia no horário.
 //
-// OBS JSVM: handlers rodam em contexto isolado — a lógica de agendamento fica
-// inline dentro de cada handler (nao pode ser funcao do escopo do arquivo).
+// Suporta placeholders {nome}, {data} e {hora}. Se o template usar {data}/{hora}
+// (ex.: estágio "agendamento confirmado"), o hook busca a consulta agendada do
+// paciente e preenche com a data/hora (em BRT, UTC-3).
+//
+// OBS JSVM: handlers rodam em contexto isolado — a lógica fica inline.
 
 onRecordAfterCreateSuccess((e) => {
-  // Nao agenda boas-vindas para leads importados em massa (evita blast).
   if (e.record.getBool('imported')) {
-    return e.next()
+    return e.next() // leads importados nao recebem boas-vindas (evita blast)
   }
   const stage = e.record.getString('journey_stage')
   if (stage) {
@@ -30,7 +32,13 @@ onRecordAfterCreateSuccess((e) => {
       const tpl = tpls[0]
       const name = patientRec.getString('name') || ''
       const firstName = name.split(' ')[0] || name
-      const text = tpl.getString('message_text').split('{nome}').join(firstName)
+      let text = tpl.getString('message_text').split('{nome}').join(firstName)
+
+      if (text.indexOf('{data}') >= 0 || text.indexOf('{hora}') >= 0) {
+        const dt = nextAppointmentDateTime(patientRec.id)
+        text = text.split('{data}').join(dt.data).split('{hora}').join(dt.hora)
+      }
+
       const delayMin = tpl.getFloat('delay_minutes') || 0
       const when = new Date(Date.now() + delayMin * 60000).toISOString()
       const col = $app.findCollectionByNameOrId('scheduled_messages')
@@ -43,6 +51,43 @@ onRecordAfterCreateSuccess((e) => {
       $app.logger().info('[stage_followup] agendado', 'stage', st, 'patient', patientRec.id)
     } catch (err) {
       $app.logger().error('[stage_followup] falhou', 'stage', st, 'error', err.message)
+    }
+  }
+
+  // Data/hora (BRT) da proxima consulta do paciente; '' se nao houver.
+  function nextAppointmentDateTime(patientId) {
+    try {
+      const appts = $app.findRecordsByFilter(
+        'appointments',
+        "patient_id = {:pid} && status != 'cancelled'",
+        '-appointment_date',
+        20,
+        0,
+        { pid: patientId },
+      )
+      if (!appts.length) return { data: '', hora: '' }
+      const nowMs = Date.now()
+      let chosen = appts[0]
+      let bestFutureMs = Infinity
+      let bestFuture = null
+      for (const a of appts) {
+        const ms = new Date(a.getString('appointment_date').replace(' ', 'T')).getTime()
+        if (!isNaN(ms) && ms >= nowMs && ms < bestFutureMs) {
+          bestFutureMs = ms
+          bestFuture = a
+        }
+      }
+      if (bestFuture) chosen = bestFuture
+      const ms = new Date(chosen.getString('appointment_date').replace(' ', 'T')).getTime()
+      if (isNaN(ms)) return { data: '', hora: '' }
+      const brt = new Date(ms - 3 * 3600000)
+      const pad = (n) => ('0' + n).slice(-2)
+      return {
+        data: pad(brt.getUTCDate()) + '/' + pad(brt.getUTCMonth() + 1) + '/' + brt.getUTCFullYear(),
+        hora: pad(brt.getUTCHours()) + ':' + pad(brt.getUTCMinutes()),
+      }
+    } catch (err) {
+      return { data: '', hora: '' }
     }
   }
 }, 'patients')
@@ -69,7 +114,13 @@ onRecordAfterUpdateSuccess((e) => {
       const tpl = tpls[0]
       const name = patientRec.getString('name') || ''
       const firstName = name.split(' ')[0] || name
-      const text = tpl.getString('message_text').split('{nome}').join(firstName)
+      let text = tpl.getString('message_text').split('{nome}').join(firstName)
+
+      if (text.indexOf('{data}') >= 0 || text.indexOf('{hora}') >= 0) {
+        const dt = nextAppointmentDateTime(patientRec.id)
+        text = text.split('{data}').join(dt.data).split('{hora}').join(dt.hora)
+      }
+
       const delayMin = tpl.getFloat('delay_minutes') || 0
       const when = new Date(Date.now() + delayMin * 60000).toISOString()
       const col = $app.findCollectionByNameOrId('scheduled_messages')
@@ -82,6 +133,42 @@ onRecordAfterUpdateSuccess((e) => {
       $app.logger().info('[stage_followup] agendado', 'stage', st, 'patient', patientRec.id)
     } catch (err) {
       $app.logger().error('[stage_followup] falhou', 'stage', st, 'error', err.message)
+    }
+  }
+
+  function nextAppointmentDateTime(patientId) {
+    try {
+      const appts = $app.findRecordsByFilter(
+        'appointments',
+        "patient_id = {:pid} && status != 'cancelled'",
+        '-appointment_date',
+        20,
+        0,
+        { pid: patientId },
+      )
+      if (!appts.length) return { data: '', hora: '' }
+      const nowMs = Date.now()
+      let chosen = appts[0]
+      let bestFutureMs = Infinity
+      let bestFuture = null
+      for (const a of appts) {
+        const ms = new Date(a.getString('appointment_date').replace(' ', 'T')).getTime()
+        if (!isNaN(ms) && ms >= nowMs && ms < bestFutureMs) {
+          bestFutureMs = ms
+          bestFuture = a
+        }
+      }
+      if (bestFuture) chosen = bestFuture
+      const ms = new Date(chosen.getString('appointment_date').replace(' ', 'T')).getTime()
+      if (isNaN(ms)) return { data: '', hora: '' }
+      const brt = new Date(ms - 3 * 3600000)
+      const pad = (n) => ('0' + n).slice(-2)
+      return {
+        data: pad(brt.getUTCDate()) + '/' + pad(brt.getUTCMonth() + 1) + '/' + brt.getUTCFullYear(),
+        hora: pad(brt.getUTCHours()) + ':' + pad(brt.getUTCMinutes()),
+      }
+    } catch (err) {
+      return { data: '', hora: '' }
     }
   }
 }, 'patients')

@@ -82,7 +82,8 @@ export default function Automacoes() {
           Mensagens de WhatsApp enviadas automaticamente. Use{' '}
           <code className="rounded bg-muted px-1">{'{nome}'}</code> para o nome do paciente
           {' '}(e <code className="rounded bg-muted px-1">{'{data}'}</code>,{' '}
-          <code className="rounded bg-muted px-1">{'{hora}'}</code> nos lembretes de consulta).
+          <code className="rounded bg-muted px-1">{'{hora}'}</code> nos lembretes e na confirmação de
+          agendamento).
         </p>
       </div>
 
