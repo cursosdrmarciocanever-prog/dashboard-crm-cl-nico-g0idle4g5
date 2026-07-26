@@ -6,6 +6,10 @@
 // inline dentro de cada handler (nao pode ser funcao do escopo do arquivo).
 
 onRecordAfterCreateSuccess((e) => {
+  // Nao agenda boas-vindas para leads importados em massa (evita blast).
+  if (e.record.getBool('imported')) {
+    return e.next()
+  }
   const stage = e.record.getString('journey_stage')
   if (stage) {
     scheduleFollowup(e.record, stage)

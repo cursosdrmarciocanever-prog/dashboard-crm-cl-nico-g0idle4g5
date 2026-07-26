@@ -18,6 +18,7 @@ export interface Patient extends RecordModel {
   campaign_name?: string
   ad_set_name?: string
   ad_name?: string
+  imported?: boolean
 }
 
 export const getPatients = (filter?: string) =>
