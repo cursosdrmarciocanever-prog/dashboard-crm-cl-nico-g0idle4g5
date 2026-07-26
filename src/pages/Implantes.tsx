@@ -44,6 +44,7 @@ import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Syringe, Plus, Check, Loader2, Save, X, CalendarClock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ImportImplantsDialog } from '@/components/ImportImplantsDialog'
 
 export default function Implantes() {
   const [rows, setRows] = useState<Patient[]>([])
@@ -102,7 +103,10 @@ export default function Implantes() {
             Acompanhamento das pacientes com implante e lembretes automáticos de vencimento.
           </p>
         </div>
-        <AddImplantDialog onDone={load} />
+        <div className="flex items-center gap-2">
+          <ImportImplantsDialog onDone={load} />
+          <AddImplantDialog onDone={load} />
+        </div>
       </div>
 
       <div className="bg-card border rounded-xl shadow-sm overflow-hidden">

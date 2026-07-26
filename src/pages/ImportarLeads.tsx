@@ -7,46 +7,14 @@ import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { Upload, Loader2, FileUp, UserPlus } from 'lucide-react'
 
-type LeadNote = 'ok' | 'add9' | 'fixo'
+import { normalizeBR, prettyPhone, type PhoneNote } from '@/lib/phone'
 
 interface ParsedLead {
   name: string
   original: string
   phone: string // formato final (55 + DDD + numero), '' se invalido
   valid: boolean
-  note: LeadNote
-}
-
-// Normalização inteligente de telefone brasileiro:
-// - remove o DDI 55 quando claramente presente (12-13 dígitos)
-// - celular com 8 dígitos (antigo, sem o 9) → adiciona o 9
-// - fixo (10 dígitos começando com 2-5) → mantém
-// - exige DDD (número nacional com 10 ou 11 dígitos)
-function normalizeBR(raw: string): { phone: string; valid: boolean; note: LeadNote } {
-  let d = (raw || '').replace(/\D/g, '')
-  if (!d) return { phone: '', valid: false, note: 'ok' }
-
-  // remove DDI 55 só quando claramente há código de país (evita confundir com DDD 55)
-  if ((d.length === 12 || d.length === 13) && d.startsWith('55')) {
-    d = d.slice(2)
-  }
-
-  if (d.length === 11) {
-    // DDD + 9 dígitos (celular já com o 9)
-    return { phone: '55' + d, valid: true, note: 'ok' }
-  }
-  if (d.length === 10) {
-    const subFirst = d[2] // 1º dígito após o DDD
-    if ('6789'.includes(subFirst)) {
-      // celular antigo sem o 9 → insere o 9
-      d = d.slice(0, 2) + '9' + d.slice(2)
-      return { phone: '55' + d, valid: true, note: 'add9' }
-    }
-    // telefone fixo
-    return { phone: '55' + d, valid: true, note: 'fixo' }
-  }
-  // sem DDD ou tamanho inválido
-  return { phone: '', valid: false, note: 'ok' }
+  note: PhoneNote
 }
 
 function parseLeads(text: string): ParsedLead[] {
@@ -90,17 +58,6 @@ function parseLeads(text: string): ParsedLead[] {
     })
   }
   return out
-}
-
-function prettyPhone(p: string) {
-  // 5544988887777 -> +55 (44) 98888-7777
-  if (p.length < 12) return p
-  const cc = p.slice(0, 2)
-  const ddd = p.slice(2, 4)
-  const rest = p.slice(4)
-  const mid = rest.length === 9 ? rest.slice(0, 5) : rest.slice(0, 4)
-  const end = rest.length === 9 ? rest.slice(5) : rest.slice(4)
-  return `+${cc} (${ddd}) ${mid}-${end}`
 }
 
 export default function ImportarLeads() {
