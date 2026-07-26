@@ -40,7 +40,7 @@ export default function Login() {
             <Activity className="w-8 h-8 text-primary" />
           </div>
           <CardTitle className="text-2xl font-bold tracking-tight text-foreground">
-            EndoClinic
+            Clínica Canever
           </CardTitle>
           <CardDescription className="text-muted-foreground">
             Faça login para acessar o CRM Médico

@@ -4,6 +4,7 @@ import { Toaster as Sonner } from '@/components/ui/sonner'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { AuthProvider } from '@/hooks/use-auth'
 import { SettingsProvider } from '@/hooks/use-settings'
+import { ThemeProvider } from '@/hooks/use-theme'
 
 import Layout from './components/Layout'
 import Index from './pages/Index'
@@ -21,6 +22,7 @@ import NotFound from './pages/NotFound'
 
 const App = () => (
   <BrowserRouter>
+    <ThemeProvider>
     <TooltipProvider>
       <Toaster />
       <Sonner />
@@ -45,6 +47,7 @@ const App = () => (
         </SettingsProvider>
       </AuthProvider>
     </TooltipProvider>
+    </ThemeProvider>
   </BrowserRouter>
 )
 

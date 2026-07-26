@@ -1,15 +1,17 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Bell, Activity } from 'lucide-react'
+import { Search, Bell, Activity, Sun, Moon } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
 import { useSettings } from '@/hooks/use-settings'
+import { useTheme } from '@/hooks/use-theme'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 
 export function Header() {
   const { user } = useAuth()
   const { logoUrl } = useSettings()
+  const { theme, toggle } = useTheme()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
 
@@ -35,7 +37,20 @@ export function Header() {
         </div>
       </div>
       <div className="flex items-center gap-4">
-        <Button variant="ghost" size="icon" className="relative">
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={toggle}
+          aria-label="Alternar tema"
+          title={theme === 'dark' ? 'Modo claro' : 'Modo escuro'}
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-5 h-5 text-muted-foreground" />
+          ) : (
+            <Moon className="w-5 h-5 text-muted-foreground" />
+          )}
+        </Button>
+        <Button variant="ghost" size="icon" className="relative hidden sm:inline-flex">
           <Bell className="w-5 h-5 text-muted-foreground" />
           <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full" />
         </Button>

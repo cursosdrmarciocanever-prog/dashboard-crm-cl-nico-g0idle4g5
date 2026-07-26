@@ -60,7 +60,9 @@ const statusBadge = (status: Appointment['status']) => {
 
 export default function Appointments() {
   const [appointments, setAppointments] = useState<Appointment[]>([])
-  const [view, setView] = useState<'calendar' | 'list'>('calendar')
+  const [view, setView] = useState<'calendar' | 'list'>(() =>
+    typeof window !== 'undefined' && window.innerWidth < 768 ? 'list' : 'calendar',
+  )
   const [month, setMonth] = useState<Date>(new Date())
   const [selected, setSelected] = useState<Appointment | null>(null)
   const { toast } = useToast()
@@ -185,6 +187,8 @@ function CalendarView({
         </div>
       </div>
 
+      <div className="overflow-x-auto">
+      <div className="min-w-[680px]">
       <div className="grid grid-cols-7 border-b bg-muted/5">
         {WEEKDAYS.map((w) => (
           <div key={w} className="text-center text-xs font-medium text-muted-foreground py-2">
@@ -243,6 +247,8 @@ function CalendarView({
             </div>
           )
         })}
+      </div>
+      </div>
       </div>
     </div>
   )
