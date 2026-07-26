@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { getPatients, Patient } from '@/services/patients'
+import { getPatients, updatePatient, deletePatient, Patient } from '@/services/patients'
 import {
   Table,
   TableBody,
@@ -10,18 +10,33 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from '@/components/ui/alert-dialog'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { format } from 'date-fns'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Search } from 'lucide-react'
+import { Search, Pencil, Trash2, Loader2, Save } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useToast } from '@/hooks/use-toast'
 import { NewPatientDialog } from '@/components/NewPatientDialog'
 
 const STAGE_LABELS: Record<string, string> = {
@@ -39,6 +54,7 @@ const STAGE_LABELS: Record<string, string> = {
   novo_pedido_exames_fornecido: 'Novo pedido de exames',
   proxima_consulta_agendada: 'Próxima consulta agendada',
 }
+const STAGES = Object.keys(STAGE_LABELS)
 
 const ORIGIN_LABELS: Record<string, string> = {
   whatsapp: 'WhatsApp',
@@ -49,11 +65,22 @@ const ORIGIN_LABELS: Record<string, string> = {
 const stageLabel = (s?: string) => (s ? STAGE_LABELS[s] || s.replace(/_/g, ' ') : '-')
 const originLabel = (o?: string) => (o ? ORIGIN_LABELS[o] || o : '-')
 
+interface EditForm {
+  name: string
+  phone: string
+  status: Patient['status']
+  journey_stage: string
+}
+
 export default function Patients() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [searchParams] = useSearchParams()
   const [search, setSearch] = useState(searchParams.get('q') || '')
   const [selected, setSelected] = useState<Patient | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [form, setForm] = useState<EditForm | null>(null)
+  const [saving, setSaving] = useState(false)
+  const { toast } = useToast()
 
   const load = async () => {
     const data = await getPatients()
@@ -72,6 +99,54 @@ export default function Patients() {
   }, [searchParams])
 
   const filtered = patients.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+
+  const openPatient = (p: Patient) => {
+    setSelected(p)
+    setEditing(false)
+  }
+
+  const startEdit = () => {
+    if (!selected) return
+    setForm({
+      name: selected.name || '',
+      phone: selected.phone || '',
+      status: selected.status,
+      journey_stage: selected.journey_stage || 'novo_lead',
+    })
+    setEditing(true)
+  }
+
+  const handleSave = async () => {
+    if (!selected || !form) return
+    setSaving(true)
+    try {
+      await updatePatient(selected.id, {
+        name: form.name.trim(),
+        phone: form.phone.replace(/\D/g, ''),
+        status: form.status,
+        journey_stage: form.journey_stage,
+      })
+      await load()
+      setEditing(false)
+      setSelected(null)
+      toast({ title: 'Salvo', description: 'Paciente atualizado.' })
+    } catch {
+      toast({ title: 'Erro', description: 'Não foi possível salvar.', variant: 'destructive' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    try {
+      await deletePatient(id)
+      await load()
+      setSelected(null)
+      toast({ title: 'Excluído', description: 'O lead foi removido.' })
+    } catch {
+      toast({ title: 'Erro', description: 'Não foi possível excluir.', variant: 'destructive' })
+    }
+  }
 
   return (
     <div className="space-y-6 animate-fade-in">
@@ -115,7 +190,9 @@ export default function Patients() {
               <TableRow key={p.id}>
                 <TableCell className="font-medium">{p.name}</TableCell>
                 <TableCell className="text-muted-foreground">{p.phone || '-'}</TableCell>
-                <TableCell className="text-muted-foreground">{originLabel(p.traffic_platform)}</TableCell>
+                <TableCell className="text-muted-foreground">
+                  {originLabel(p.traffic_platform)}
+                </TableCell>
                 <TableCell className="text-muted-foreground">{stageLabel(p.journey_stage)}</TableCell>
                 <TableCell>
                   <Badge
@@ -134,7 +211,7 @@ export default function Patients() {
                     variant="ghost"
                     size="sm"
                     className="text-primary hover:text-primary/80"
-                    onClick={() => setSelected(p)}
+                    onClick={() => openPatient(p)}
                   >
                     Ver Detalhes
                   </Button>
@@ -145,12 +222,13 @@ export default function Patients() {
         </Table>
       </div>
 
-      <Dialog open={!!selected} onOpenChange={(o) => !o && setSelected(null)}>
+      <Dialog open={!!selected} onOpenChange={(o) => !o && (setSelected(null), setEditing(false))}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{selected?.name}</DialogTitle>
+            <DialogTitle>{editing ? 'Editar paciente' : selected?.name}</DialogTitle>
           </DialogHeader>
-          {selected && (
+
+          {selected && !editing && (
             <div className="space-y-3 text-sm">
               <DetailRow label="Telefone" value={selected.phone || '-'} />
               <DetailRow label="Origem" value={originLabel(selected.traffic_platform)} />
@@ -168,16 +246,102 @@ export default function Patients() {
                 }
               />
               <DetailRow
-                label="Último atendimento"
-                value={selected.last_visit ? format(new Date(selected.last_visit), 'dd/MM/yyyy') : '-'}
-              />
-              <DetailRow
                 label="Cadastrado em"
                 value={selected.created ? format(new Date(selected.created), 'dd/MM/yyyy HH:mm') : '-'}
               />
-              {selected.campaign_name && (
-                <DetailRow label="Campanha" value={selected.campaign_name} />
-              )}
+
+              <div className="flex justify-between gap-2 pt-3">
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="outline" className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10">
+                      <Trash2 className="w-4 h-4" /> Excluir
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Excluir este lead?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        Isso remove <strong>{selected.name}</strong> e também suas conversas,
+                        agendamentos e mensagens. Esta ação não pode ser desfeita.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Voltar</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={() => handleDelete(selected.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
+                        Sim, excluir
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+
+                <Button className="gap-1.5" onClick={startEdit}>
+                  <Pencil className="w-4 h-4" /> Editar
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {selected && editing && form && (
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Nome</Label>
+                <Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} />
+              </div>
+              <div className="space-y-2">
+                <Label>Telefone</Label>
+                <Input
+                  value={form.phone}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  inputMode="numeric"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Status</Label>
+                <Select
+                  value={form.status}
+                  onValueChange={(v) => setForm({ ...form, status: v as Patient['status'] })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ativo">Ativo</SelectItem>
+                    <SelectItem value="concluido">Concluído</SelectItem>
+                    <SelectItem value="inativo">Inativo</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Estágio da jornada</Label>
+                <Select
+                  value={form.journey_stage}
+                  onValueChange={(v) => setForm({ ...form, journey_stage: v })}
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {STAGES.map((s) => (
+                      <SelectItem key={s} value={s}>
+                        {STAGE_LABELS[s]}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <Button variant="outline" onClick={() => setEditing(false)} disabled={saving}>
+                  Cancelar
+                </Button>
+                <Button onClick={handleSave} disabled={saving} className="gap-1.5">
+                  {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                  Salvar
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>
