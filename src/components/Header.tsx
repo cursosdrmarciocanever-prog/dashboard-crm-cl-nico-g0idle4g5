@@ -1,9 +1,8 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Bell } from 'lucide-react'
+import { Search, Bell, Activity } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useAuth } from '@/hooks/use-auth'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 
@@ -43,10 +42,12 @@ export function Header() {
             <span className="text-sm font-semibold">{user?.name || 'Dr. Médico'}</span>
             <span className="text-xs text-muted-foreground">Endocrinologista</span>
           </div>
-          <Avatar className="w-9 h-9 border border-primary/20">
-            <AvatarImage src={`https://img.usecurling.com/ppl/thumbnail?gender=male&seed=doctor`} />
-            <AvatarFallback>DR</AvatarFallback>
-          </Avatar>
+          {/* Logo da clínica. Para usar a logo real, troque este bloco por:
+              <img src="/logo.png" alt="Clínica Canever" className="w-9 h-9 rounded-full object-contain border border-primary/20" />
+              (colocando o arquivo em public/logo.png). */}
+          <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+            <Activity className="w-5 h-5 text-primary" />
+          </div>
         </div>
       </div>
     </header>
