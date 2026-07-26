@@ -16,10 +16,39 @@ import { Loader2, Save, Bot } from 'lucide-react'
 const STAGE_LABELS: Record<string, string> = {
   novo_lead: 'Novo lead (boas-vindas)',
   agendamento_confirmado: 'Agendamento confirmado',
-  exames_enviados: 'Exames solicitados',
-  exames_recebidos: 'Exames recebidos',
+  pedido_exames_enviados: 'Pedido de exames enviado',
+  exames_recebidos_parcialmente: 'Exames recebidos (parcial)',
+  exames_recebidos_completos: 'Exames recebidos (completos)',
+  exames_enviados_dr_marcio: 'Exames enviados ao Dr. Marcio',
+  exames_recebidos_dr_marcio_vistos: 'Exames analisados pelo Dr. Marcio',
+  exames_anexados: 'Exames anexados ao prontuário',
   questionario_enviado: 'Questionário enviado',
   questionario_respondido: 'Questionário respondido',
+  consulta_realizada: 'Consulta realizada',
+  novo_pedido_exames_fornecido: 'Novo pedido de exames fornecido',
+  proxima_consulta_agendada: 'Próxima consulta agendada',
+}
+
+// Ordem da jornada (para exibir os cards na sequência real, não alfabética)
+const STAGE_ORDER = [
+  'novo_lead',
+  'agendamento_confirmado',
+  'pedido_exames_enviados',
+  'exames_recebidos_parcialmente',
+  'exames_recebidos_completos',
+  'exames_enviados_dr_marcio',
+  'exames_recebidos_dr_marcio_vistos',
+  'exames_anexados',
+  'questionario_enviado',
+  'questionario_respondido',
+  'consulta_realizada',
+  'novo_pedido_exames_fornecido',
+  'proxima_consulta_agendada',
+]
+
+const stageOrder = (stage: string) => {
+  const i = STAGE_ORDER.indexOf(stage)
+  return i === -1 ? 999 : i
 }
 
 const stageLabel = (stage: string) =>
@@ -33,7 +62,9 @@ export default function Automacoes() {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      setTemplates(await getStageTemplates())
+      const list = await getStageTemplates()
+      list.sort((a, b) => stageOrder(a.stage) - stageOrder(b.stage))
+      setTemplates(list)
     } finally {
       setLoading(false)
     }
