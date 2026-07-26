@@ -3,7 +3,6 @@ import { getPatients, createPatient } from '@/services/patients'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { useToast } from '@/hooks/use-toast'
 import { Upload, Loader2, FileUp, UserPlus } from 'lucide-react'
 
