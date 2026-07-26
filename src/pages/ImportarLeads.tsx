@@ -3,36 +3,62 @@ import { getPatients, createPatient } from '@/services/patients'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { useToast } from '@/hooks/use-toast'
 import { Upload, Loader2, FileUp, UserPlus } from 'lucide-react'
 
+type LeadNote = 'ok' | 'add9' | 'fixo'
+
 interface ParsedLead {
   name: string
-  phone: string
+  original: string
+  phone: string // formato final (55 + DDD + numero), '' se invalido
+  valid: boolean
+  note: LeadNote
 }
 
-function normalizePhone(raw: string): string {
+// Normalização inteligente de telefone brasileiro:
+// - remove o DDI 55 quando claramente presente (12-13 dígitos)
+// - celular com 8 dígitos (antigo, sem o 9) → adiciona o 9
+// - fixo (10 dígitos começando com 2-5) → mantém
+// - exige DDD (número nacional com 10 ou 11 dígitos)
+function normalizeBR(raw: string): { phone: string; valid: boolean; note: LeadNote } {
   let d = (raw || '').replace(/\D/g, '')
-  if (!d) return ''
-  if (d.length <= 11) d = '55' + d
-  return d
+  if (!d) return { phone: '', valid: false, note: 'ok' }
+
+  // remove DDI 55 só quando claramente há código de país (evita confundir com DDD 55)
+  if ((d.length === 12 || d.length === 13) && d.startsWith('55')) {
+    d = d.slice(2)
+  }
+
+  if (d.length === 11) {
+    // DDD + 9 dígitos (celular já com o 9)
+    return { phone: '55' + d, valid: true, note: 'ok' }
+  }
+  if (d.length === 10) {
+    const subFirst = d[2] // 1º dígito após o DDD
+    if ('6789'.includes(subFirst)) {
+      // celular antigo sem o 9 → insere o 9
+      d = d.slice(0, 2) + '9' + d.slice(2)
+      return { phone: '55' + d, valid: true, note: 'add9' }
+    }
+    // telefone fixo
+    return { phone: '55' + d, valid: true, note: 'fixo' }
+  }
+  // sem DDD ou tamanho inválido
+  return { phone: '', valid: false, note: 'ok' }
 }
 
-// Cada linha: nome e telefone separados por vírgula, ponto-e-vírgula ou tab.
-// Detecta qual coluna é o telefone (a com mais dígitos), tolerando ordem invertida.
-function parseLeads(text: string): { valid: ParsedLead[]; invalid: number } {
+function parseLeads(text: string): ParsedLead[] {
   const lines = text
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter(Boolean)
 
-  const valid: ParsedLead[] = []
-  let invalid = 0
-
+  const out: ParsedLead[] = []
   for (const line of lines) {
-    // pula cabeçalho tipo "Nome, Telefone"
     if (/^(nome|name)\b/i.test(line) && /(telefone|phone|fone|celular|contato)/i.test(line)) {
-      continue
+      continue // cabeçalho
     }
     const parts = line
       .split(/[;,\t]+/)
@@ -49,20 +75,32 @@ function parseLeads(text: string): { valid: ParsedLead[]; invalid: number } {
         phonePart = p
       }
     }
-    const phone = normalizePhone(phonePart)
     const name = parts
       .filter((p) => p !== phonePart)
       .join(' ')
       .trim()
 
-    if (!phone || phone.length < 12) {
-      invalid++
-      continue
-    }
-    valid.push({ name: name || 'Lead ' + phone.slice(-4), phone })
+    const n = normalizeBR(phonePart)
+    out.push({
+      name: name || (n.phone ? 'Lead ' + n.phone.slice(-4) : 'Lead'),
+      original: phonePart || line,
+      phone: n.phone,
+      valid: n.valid,
+      note: n.note,
+    })
   }
+  return out
+}
 
-  return { valid, invalid }
+function prettyPhone(p: string) {
+  // 5544988887777 -> +55 (44) 98888-7777
+  if (p.length < 12) return p
+  const cc = p.slice(0, 2)
+  const ddd = p.slice(2, 4)
+  const rest = p.slice(4)
+  const mid = rest.length === 9 ? rest.slice(0, 5) : rest.slice(0, 4)
+  const end = rest.length === 9 ? rest.slice(5) : rest.slice(4)
+  return `+${cc} (${ddd}) ${mid}-${end}`
 }
 
 export default function ImportarLeads() {
@@ -81,12 +119,15 @@ export default function ImportarLeads() {
     reader.readAsText(file)
   }
 
+  const leads = parseLeads(text)
+  const validLeads = leads.filter((l) => l.valid)
+  const invalidCount = leads.length - validLeads.length
+
   const handleImport = async () => {
-    const { valid, invalid } = parseLeads(text)
-    if (valid.length === 0) {
+    if (validLeads.length === 0) {
       toast({
         title: 'Nada para importar',
-        description: 'Não encontrei telefones válidos na lista.',
+        description: 'Não encontrei telefones válidos (lembre do DDD).',
         variant: 'destructive',
       })
       return
@@ -94,10 +135,9 @@ export default function ImportarLeads() {
 
     setImporting(true)
     setProgress(0)
-    setTotal(valid.length)
+    setTotal(validLeads.length)
 
     try {
-      // telefones já existentes (para não duplicar)
       const existing = await getPatients()
       const existingPhones = new Set(
         existing.map((p) => (p.phone || '').replace(/\D/g, '').replace(/^55/, '')),
@@ -107,8 +147,8 @@ export default function ImportarLeads() {
       let duplicates = 0
       let failed = 0
 
-      for (let i = 0; i < valid.length; i++) {
-        const lead = valid[i]
+      for (let i = 0; i < validLeads.length; i++) {
+        const lead = validLeads[i]
         const key = lead.phone.replace(/^55/, '')
         if (existingPhones.has(key)) {
           duplicates++
@@ -133,7 +173,7 @@ export default function ImportarLeads() {
 
       toast({
         title: 'Importação concluída',
-        description: `${created} novos · ${duplicates} já existiam · ${invalid} inválidos${
+        description: `${created} novos · ${duplicates} já existiam · ${invalidCount} inválidos${
           failed ? ` · ${failed} falharam` : ''
         }`,
       })
@@ -143,8 +183,6 @@ export default function ImportarLeads() {
     }
   }
 
-  const preview = parseLeads(text)
-
   return (
     <div className="max-w-2xl space-y-6 animate-fade-in">
       <div>
@@ -153,9 +191,9 @@ export default function ImportarLeads() {
           Importar Leads
         </h1>
         <p className="text-muted-foreground mt-1">
-          Cole ou envie uma lista de contatos. Cada linha: <strong>nome e telefone</strong>{' '}
-          (separados por vírgula). Leads já cadastrados são ignorados, e a importação{' '}
-          <strong>não</strong> dispara mensagens automáticas.
+          Cole ou envie uma lista: cada linha com <strong>nome e telefone</strong>. O sistema
+          corrige o formato (adiciona o 55 e o 9 quando faltar) e ignora quem já existe. Não
+          dispara mensagens.
         </p>
       </div>
 
@@ -163,12 +201,13 @@ export default function ImportarLeads() {
         <CardHeader>
           <CardTitle>Lista de contatos</CardTitle>
           <CardDescription>
-            Exemplo: <code className="rounded bg-muted px-1">João Silva, 44988887777</code>
+            Ex.: <code className="rounded bg-muted px-1">João Silva, 44988887777</code> — sempre
+            com <strong>DDD</strong>.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <Textarea
-            rows={10}
+            rows={8}
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder={'João Silva, 44988887777\nMaria Oliveira, (44) 99999-8888\n...'}
@@ -176,33 +215,67 @@ export default function ImportarLeads() {
           />
 
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".csv,.txt"
-                onChange={handleFile}
-                className="hidden"
-              />
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fileRef.current?.click()}
-                disabled={importing}
-                className="gap-2"
-              >
-                <FileUp className="w-4 h-4" />
-                Enviar arquivo (.csv)
-              </Button>
-            </div>
-
-            {text.trim() && (
+            <input
+              ref={fileRef}
+              type="file"
+              accept=".csv,.txt"
+              onChange={handleFile}
+              className="hidden"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileRef.current?.click()}
+              disabled={importing}
+              className="gap-2"
+            >
+              <FileUp className="w-4 h-4" />
+              Enviar arquivo (.csv)
+            </Button>
+            {leads.length > 0 && (
               <span className="text-sm text-muted-foreground">
-                {preview.valid.length} válidos
-                {preview.invalid > 0 && ` · ${preview.invalid} inválidos`}
+                {validLeads.length} válidos
+                {invalidCount > 0 && ` · ${invalidCount} com problema`}
               </span>
             )}
           </div>
+
+          {leads.length > 0 && (
+            <div className="border rounded-lg divide-y max-h-72 overflow-y-auto">
+              {leads.slice(0, 200).map((l, i) => (
+                <div key={i} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                  <div className="min-w-0">
+                    <div className="font-medium truncate">{l.name}</div>
+                    <div className="text-muted-foreground text-xs">
+                      {l.valid ? prettyPhone(l.phone) : l.original || '(sem número)'}
+                    </div>
+                  </div>
+                  {!l.valid ? (
+                    <Badge variant="destructive" className="shrink-0">
+                      Sem DDD
+                    </Badge>
+                  ) : l.note === 'add9' ? (
+                    <Badge variant="secondary" className="shrink-0">
+                      9 adicionado
+                    </Badge>
+                  ) : l.note === 'fixo' ? (
+                    <Badge variant="outline" className="shrink-0">
+                      Fixo
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline" className="shrink-0 text-green-700 border-green-300">
+                      OK
+                    </Badge>
+                  )}
+                </div>
+              ))}
+              {leads.length > 200 && (
+                <div className="px-3 py-2 text-xs text-muted-foreground">
+                  +{leads.length - 200} não exibidos (serão importados normalmente)
+                </div>
+              )}
+            </div>
+          )}
 
           {importing && (
             <div className="text-sm text-muted-foreground">
@@ -210,10 +283,10 @@ export default function ImportarLeads() {
             </div>
           )}
 
-          <div className="flex justify-end pt-2">
+          <div className="flex justify-end pt-1">
             <Button
               onClick={handleImport}
-              disabled={importing || preview.valid.length === 0}
+              disabled={importing || validLeads.length === 0}
               className="gap-2"
             >
               {importing ? (
@@ -221,7 +294,7 @@ export default function ImportarLeads() {
               ) : (
                 <UserPlus className="w-4 h-4" />
               )}
-              Importar {preview.valid.length > 0 ? preview.valid.length : ''} leads
+              Importar {validLeads.length > 0 ? validLeads.length : ''} leads
             </Button>
           </div>
         </CardContent>
