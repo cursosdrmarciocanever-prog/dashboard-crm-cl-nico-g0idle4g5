@@ -4,10 +4,12 @@ import { Search, Bell, Activity } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/use-auth'
+import { useSettings } from '@/hooks/use-settings'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 
 export function Header() {
   const { user } = useAuth()
+  const { logoUrl } = useSettings()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
 
@@ -42,12 +44,17 @@ export function Header() {
             <span className="text-sm font-semibold">{user?.name || 'Dr. Médico'}</span>
             <span className="text-xs text-muted-foreground">Endocrinologista</span>
           </div>
-          {/* Logo da clínica. Para usar a logo real, troque este bloco por:
-              <img src="/logo.png" alt="Clínica Canever" className="w-9 h-9 rounded-full object-contain border border-primary/20" />
-              (colocando o arquivo em public/logo.png). */}
-          <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-            <Activity className="w-5 h-5 text-primary" />
-          </div>
+          {logoUrl ? (
+            <img
+              src={logoUrl}
+              alt="Logo da clínica"
+              className="h-9 w-auto max-w-[150px] object-contain rounded"
+            />
+          ) : (
+            <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+              <Activity className="w-5 h-5 text-primary" />
+            </div>
+          )}
         </div>
       </div>
     </header>

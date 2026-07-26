@@ -22,6 +22,7 @@ import {
   SidebarMenuButton,
   SidebarHeader,
 } from '@/components/ui/sidebar'
+import { useSettings } from '@/hooks/use-settings'
 
 const menuItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
@@ -38,14 +39,19 @@ const menuItems = [
 
 export function Sidebar() {
   const location = useLocation()
+  const { logoUrl } = useSettings()
 
   return (
     <ShadcnSidebar>
       <SidebarHeader className="p-4 border-b bg-background/50 backdrop-blur-sm">
-        <div className="flex items-center gap-2 text-primary">
-          <Activity className="w-8 h-8" />
-          <span className="font-bold text-xl tracking-tight">EndoClinic</span>
-        </div>
+        {logoUrl ? (
+          <img src={logoUrl} alt="Clínica Canever" className="h-10 w-auto max-w-full object-contain" />
+        ) : (
+          <div className="flex items-center gap-2 text-primary">
+            <Activity className="w-8 h-8" />
+            <span className="font-bold text-xl tracking-tight">Clínica Canever</span>
+          </div>
+        )}
       </SidebarHeader>
       <SidebarContent className="bg-background">
         <SidebarGroup>

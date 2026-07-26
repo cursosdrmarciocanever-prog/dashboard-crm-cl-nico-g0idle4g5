@@ -6,6 +6,7 @@ export interface ClinicSettings extends RecordModel {
   clinic_name?: string
   clinic_whatsapp?: string
   welcome_message?: string
+  logo?: string
 }
 
 // Busca o registro unico de configuracao da clinica (key = 'clinic').
