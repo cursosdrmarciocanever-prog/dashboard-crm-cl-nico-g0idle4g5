@@ -1,4 +1,5 @@
 import { useEffect, useState, useMemo } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Card, CardContent } from '@/components/ui/card'
 import { Users, Calendar, Clock } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -21,6 +22,7 @@ import { NewAppointmentDialog } from '@/components/NewAppointmentDialog'
 import { FloatingWhatsAppButton } from '@/components/FloatingWhatsAppButton'
 
 export default function Dashboard() {
+  const navigate = useNavigate()
   const [patients, setPatients] = useState<Patient[]>([])
   const [totalPatients, setTotalPatients] = useState(0)
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -197,6 +199,7 @@ export default function Dashboard() {
                   <TableRow
                     key={key}
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
+                    onClick={() => navigate(`/pacientes/${p.id}`)}
                   >
                     <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell className="text-muted-foreground">{p.phone || '-'}</TableCell>

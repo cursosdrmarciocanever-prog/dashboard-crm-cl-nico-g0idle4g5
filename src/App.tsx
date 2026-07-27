@@ -10,6 +10,7 @@ import Layout from './components/Layout'
 import Index from './pages/Index'
 import Login from './pages/Login'
 import Patients from './pages/Patients'
+import PacienteDetalhe from './pages/PacienteDetalhe'
 import Appointments from './pages/Appointments'
 import PatientJourney from './pages/PatientJourney'
 import ScheduledMessages from './pages/ScheduledMessages'
@@ -34,6 +35,7 @@ const App = () => (
           <Route element={<Layout />}>
             <Route path="/" element={<Index />} />
             <Route path="/pacientes" element={<Patients />} />
+            <Route path="/pacientes/:id" element={<PacienteDetalhe />} />
             <Route path="/importar" element={<ImportarLeads />} />
             <Route path="/implantes" element={<Implantes />} />
             <Route path="/jornada" element={<PatientJourney />} />

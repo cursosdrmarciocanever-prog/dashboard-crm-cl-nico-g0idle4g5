@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import {
   getImplantPatients,
   setImplant,
@@ -143,7 +144,9 @@ export default function Implantes() {
                 return (
                   <TableRow key={p.id}>
                     <TableCell className="font-medium">
-                      {p.name}
+                      <Link to={`/pacientes/${p.id}`} className="hover:underline">
+                        {p.name}
+                      </Link>
                       <div className="text-xs text-muted-foreground">{p.phone}</div>
                     </TableCell>
                     <TableCell className="text-muted-foreground">

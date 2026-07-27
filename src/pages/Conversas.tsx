@@ -1,10 +1,20 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { getRecentMessages, getConversation, sendMessage, type Message } from '@/services/messages'
 import { useRealtime } from '@/hooks/use-realtime'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { format } from 'date-fns'
-import { MessageSquare, Send, Loader2, Check, CheckCheck, AlertCircle, Clock } from 'lucide-react'
+import {
+  MessageSquare,
+  Send,
+  Loader2,
+  Check,
+  CheckCheck,
+  AlertCircle,
+  Clock,
+  User,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Conversation {
@@ -17,6 +27,7 @@ interface Conversation {
 }
 
 export default function Conversas() {
+  const navigate = useNavigate()
   const [recent, setRecent] = useState<Message[]>([])
   const [selected, setSelected] = useState<Conversation | null>(null)
   const [thread, setThread] = useState<Message[]>([])
@@ -132,9 +143,19 @@ export default function Conversas() {
             </div>
           ) : (
             <>
-              <div className="px-4 py-3 border-b bg-muted/10">
-                <div className="font-semibold text-foreground">{selected.name}</div>
-                <div className="text-xs text-muted-foreground">{selected.phone}</div>
+              <div className="px-4 py-3 border-b bg-muted/10 flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="font-semibold text-foreground truncate">{selected.name}</div>
+                  <div className="text-xs text-muted-foreground">{selected.phone}</div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-1.5 shrink-0"
+                  onClick={() => navigate(`/pacientes/${selected.patientId}`)}
+                >
+                  <User className="w-4 h-4" /> Ficha
+                </Button>
               </div>
 
               <div className="flex-1 overflow-y-auto p-4 space-y-2">

@@ -26,3 +26,10 @@ export const createStageHistory = (data: Partial<PatientStageHistory>) =>
 
 export const updateStageHistory = (id: string, data: Partial<PatientStageHistory>) =>
   pb.collection<PatientStageHistory>('patient_stage_history').update(id, data)
+
+// Linha do tempo de estágios de um paciente (mais recente primeiro).
+export const getPatientStageHistory = (patientId: string) =>
+  pb.collection<PatientStageHistory>('patient_stage_history').getFullList({
+    filter: pb.filter('patient_id = {:id}', { id: patientId }),
+    sort: '-entered_at',
+  })

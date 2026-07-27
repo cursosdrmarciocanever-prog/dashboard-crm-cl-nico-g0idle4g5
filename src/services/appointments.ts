@@ -20,3 +20,10 @@ export const createAppointment = (data: Partial<Appointment>) =>
 
 export const updateAppointment = (id: string, data: Partial<Appointment>) =>
   pb.collection<Appointment>('appointments').update(id, data)
+
+// Todas as consultas de um paciente (qualquer status), da mais recente para a mais antiga.
+export const getPatientAppointments = (patientId: string) =>
+  pb.collection<Appointment>('appointments').getFullList({
+    filter: pb.filter('patient_id = {:id}', { id: patientId }),
+    sort: '-appointment_date',
+  })

@@ -25,3 +25,10 @@ export const updateScheduledMessage = (id: string, data: Partial<ScheduledMessag
 
 export const deleteScheduledMessage = (id: string) =>
   pb.collection<ScheduledMessage>('scheduled_messages').delete(id)
+
+// Mensagens agendadas de um paciente, das mais próximas para as mais antigas.
+export const getPatientScheduledMessages = (patientId: string) =>
+  pb.collection<ScheduledMessage>('scheduled_messages').getFullList({
+    filter: pb.filter('patient_id = {:id}', { id: patientId }),
+    sort: '-scheduled_at',
+  })
