@@ -132,8 +132,8 @@ export default function Dashboard() {
               <p className="text-sm font-medium text-muted-foreground">Consultas do Dia</p>
               <h3 className="text-3xl font-bold mt-2">{todayAppointments.length}</h3>
             </div>
-            <div className="bg-secondary/10 p-4 rounded-full">
-              <Calendar className="w-6 h-6 text-secondary" />
+            <div className="bg-emerald-100 p-4 rounded-full">
+              <Calendar className="w-6 h-6 text-emerald-600" />
             </div>
           </CardContent>
         </Card>

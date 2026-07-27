@@ -68,10 +68,7 @@ export function NewAppointmentDialog() {
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button
-          variant="outline"
-          className="gap-2 shadow-sm border-secondary text-secondary hover:bg-secondary/10 hover:text-secondary"
-        >
+        <Button variant="outline" className="gap-2 shadow-sm">
           <Clock className="w-4 h-4" /> Agendar Consulta
         </Button>
       </DialogTrigger>
