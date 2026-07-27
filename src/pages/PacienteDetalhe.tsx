@@ -52,6 +52,7 @@ import { JOURNEY_STAGES } from '@/lib/journey-stages'
 import { prettyPhone } from '@/lib/phone'
 import { formatDuration } from '@/services/stage-history'
 import { useRealtime } from '@/hooks/use-realtime'
+import { useAuth } from '@/hooks/use-auth'
 import { useToast } from '@/hooks/use-toast'
 import { cn } from '@/lib/utils'
 
@@ -91,6 +92,7 @@ export default function PacienteDetalhe() {
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { toast } = useToast()
+  const { isAdmin } = useAuth() // secretaria nao exclui paciente
 
   const [patient, setPatient] = useState<Patient | null>(null)
   const [appointments, setAppointments] = useState<Appointment[]>([])
@@ -279,6 +281,7 @@ export default function PacienteDetalhe() {
           <Button variant="outline" className="gap-1.5" onClick={startEdit}>
             <Pencil className="w-4 h-4" /> Editar
           </Button>
+          {isAdmin && (
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button
@@ -307,6 +310,7 @@ export default function PacienteDetalhe() {
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+          )}
         </div>
       </div>
 

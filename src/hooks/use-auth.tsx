@@ -4,6 +4,9 @@ import pb from '@/lib/pocketbase/client'
 interface AuthContextType {
   user: any
   isAuthenticated: boolean
+  /** 'admin' | 'secretaria'. Quem nao tem papel definido e tratado como admin. */
+  role: string
+  isAdmin: boolean
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => void
@@ -66,11 +69,16 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     pb.authStore.clear()
   }
 
+  const role = user?.role || 'admin'
+  const isAdmin = role !== 'secretaria'
+
   return (
     <AuthContext.Provider
       value={{
         user,
         isAuthenticated,
+        role,
+        isAdmin,
         signUp,
         signIn,
         signOut,

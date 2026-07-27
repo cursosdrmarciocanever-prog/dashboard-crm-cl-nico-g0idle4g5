@@ -24,8 +24,16 @@ import {
   SidebarHeader,
 } from '@/components/ui/sidebar'
 import { useSettings } from '@/hooks/use-settings'
+import { useAuth } from '@/hooks/use-auth'
 
-const menuItems = [
+interface MenuItem {
+  icon: typeof LayoutDashboard
+  label: string
+  path: string
+  adminOnly?: boolean
+}
+
+const menuItems: MenuItem[] = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: Users, label: 'Pacientes', path: '/pacientes' },
   { icon: Upload, label: 'Importar Leads', path: '/importar' },
@@ -34,14 +42,18 @@ const menuItems = [
   { icon: MessagesSquare, label: 'Conversas', path: '/conversas' },
   { icon: Calendar, label: 'Agendamentos', path: '/agendamentos' },
   { icon: MessageSquare, label: 'Mensagens Agendadas', path: '/mensagens' },
-  { icon: Bot, label: 'Automações', path: '/automacoes' },
-  { icon: TrendingUp, label: 'Performance', path: '/performance' },
-  { icon: Settings, label: 'Configurações', path: '/configuracoes' },
+  { icon: Bot, label: 'Automações', path: '/automacoes', adminOnly: true },
+  { icon: TrendingUp, label: 'Performance', path: '/performance', adminOnly: true },
+  { icon: Settings, label: 'Configurações', path: '/configuracoes', adminOnly: true },
 ]
 
 export function Sidebar() {
   const location = useLocation()
   const { logoUrl } = useSettings()
+  const { isAdmin } = useAuth()
+
+  // A secretaria nao ve automacoes, performance e configuracoes da clinica.
+  const visibleItems = menuItems.filter((item) => isAdmin || !item.adminOnly)
 
   return (
     <ShadcnSidebar>
@@ -59,7 +71,7 @@ export function Sidebar() {
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu className="gap-2 p-2">
-              {menuItems.map((item) => (
+              {visibleItems.map((item) => (
                 <SidebarMenuItem key={item.path}>
                   <SidebarMenuButton
                     asChild
