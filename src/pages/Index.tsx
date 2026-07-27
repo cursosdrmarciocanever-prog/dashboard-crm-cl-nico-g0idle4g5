@@ -61,9 +61,43 @@ export default function Dashboard() {
     [appointments],
   )
 
-  const filteredPatients = useMemo(() => {
-    return patients.slice(0, 10)
-  }, [patients])
+  // Cada linha da tabela: em "Todos" mostra os pacientes recentes; nos filtros por
+  // data, mostra uma linha por consulta (o paciente vem do expand) com o horario.
+  const rows = useMemo(() => {
+    const fromAppointments = (list: Appointment[]) =>
+      list
+        .filter((a) => a.expand?.patient_id)
+        .map((a) => ({
+          key: a.id,
+          patient: a.expand!.patient_id,
+          when: format(new Date(a.appointment_date), "dd/MM 'às' HH:mm"),
+        }))
+
+    if (filter === 'today') return fromAppointments(todayAppointments)
+    if (filter === 'next7days') return fromAppointments(next7DaysAppointments)
+
+    return patients.slice(0, 10).map((p) => ({
+      key: p.id,
+      patient: p,
+      when: p.last_visit ? format(new Date(p.last_visit), 'dd/MM/yyyy') : '-',
+    }))
+  }, [filter, patients, todayAppointments, next7DaysAppointments])
+
+  const listTitle =
+    filter === 'today'
+      ? 'Consultas de Hoje'
+      : filter === 'next7days'
+        ? 'Consultas dos Próximos 7 Dias'
+        : 'Pacientes Recentes'
+
+  const whenColumn = filter === 'all' ? 'Último Atendimento' : 'Consulta'
+
+  const emptyMessage =
+    filter === 'today'
+      ? 'Nenhuma consulta agendada para hoje'
+      : filter === 'next7days'
+        ? 'Nenhuma consulta nos próximos 7 dias'
+        : 'Nenhum paciente encontrado'
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -116,8 +150,8 @@ export default function Dashboard() {
 
       <div className="bg-card border rounded-xl shadow-sm">
         <div className="p-6 border-b flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <h2 className="text-xl font-bold">Pacientes Recentes</h2>
-          <div className="flex gap-2">
+          <h2 className="text-xl font-bold">{listTitle}</h2>
+          <div className="flex flex-wrap gap-2">
             <Button
               variant={filter === 'all' ? 'default' : 'secondary'}
               size="sm"
@@ -130,7 +164,14 @@ export default function Dashboard() {
               size="sm"
               onClick={() => setFilter('today')}
             >
-              Hoje
+              Hoje ({todayAppointments.length})
+            </Button>
+            <Button
+              variant={filter === 'next7days' ? 'default' : 'secondary'}
+              size="sm"
+              onClick={() => setFilter('next7days')}
+            >
+              Próximos 7 dias ({next7DaysAppointments.length})
             </Button>
           </div>
         </div>
@@ -140,28 +181,26 @@ export default function Dashboard() {
               <TableRow>
                 <TableHead className="w-[300px]">Nome</TableHead>
                 <TableHead>Telefone</TableHead>
-                <TableHead>Último Atendimento</TableHead>
+                <TableHead>{whenColumn}</TableHead>
                 <TableHead>Status do Tratamento</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredPatients.length === 0 ? (
+              {rows.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
-                    Nenhum paciente encontrado
+                    {emptyMessage}
                   </TableCell>
                 </TableRow>
               ) : (
-                filteredPatients.map((p) => (
+                rows.map(({ key, patient: p, when }) => (
                   <TableRow
-                    key={p.id}
+                    key={key}
                     className="cursor-pointer hover:bg-muted/50 transition-colors"
                   >
                     <TableCell className="font-medium">{p.name}</TableCell>
                     <TableCell className="text-muted-foreground">{p.phone || '-'}</TableCell>
-                    <TableCell className="text-muted-foreground">
-                      {p.last_visit ? format(new Date(p.last_visit), 'dd/MM/yyyy') : '-'}
-                    </TableCell>
+                    <TableCell className="text-muted-foreground">{when}</TableCell>
                     <TableCell>
                       <Badge
                         variant="outline"
