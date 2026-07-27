@@ -1,19 +1,36 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Search, Bell, Activity, Sun, Moon } from 'lucide-react'
+import { Search, Bell, Activity, Sun, Moon, LogOut, ChevronDown } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { useAuth } from '@/hooks/use-auth'
 import { useSettings } from '@/hooks/use-settings'
 import { useTheme } from '@/hooks/use-theme'
 import { SidebarTrigger } from '@/components/ui/sidebar'
 
 export function Header() {
-  const { user } = useAuth()
+  const { user, isAdmin, signOut } = useAuth()
   const { logoUrl } = useSettings()
   const { theme, toggle } = useTheme()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
+
+  // A secretaria tambem usa o CRM: nao rotular todo mundo de endocrinologista.
+  const displayName = user?.name || (isAdmin ? 'Dr. Márcio Canever' : 'Secretaria')
+  const roleLabel = isAdmin ? 'Endocrinologista' : 'Secretaria'
+
+  const handleSignOut = () => {
+    signOut()
+    navigate('/login', { replace: true })
+  }
 
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && query.trim()) {
@@ -54,23 +71,41 @@ export function Header() {
           <Bell className="w-5 h-5 text-muted-foreground" />
           <span className="absolute top-2 right-2 w-2 h-2 bg-destructive rounded-full" />
         </Button>
-        <div className="flex items-center gap-3 border-l pl-4">
-          <div className="hidden md:flex flex-col items-end">
-            <span className="text-sm font-semibold">{user?.name || 'Dr. Médico'}</span>
-            <span className="text-xs text-muted-foreground">Endocrinologista</span>
-          </div>
-          {logoUrl ? (
-            <img
-              src={logoUrl}
-              alt="Logo da clínica"
-              className="h-9 w-auto max-w-[150px] object-contain rounded"
-            />
-          ) : (
-            <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
-              <Activity className="w-5 h-5 text-primary" />
-            </div>
-          )}
-        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="flex items-center gap-3 border-l pl-4 rounded-md hover:opacity-80 transition-opacity"
+              aria-label="Menu do usuário"
+            >
+              <div className="hidden md:flex flex-col items-end">
+                <span className="text-sm font-semibold">{displayName}</span>
+                <span className="text-xs text-muted-foreground">{roleLabel}</span>
+              </div>
+              {logoUrl ? (
+                <img
+                  src={logoUrl}
+                  alt="Logo da clínica"
+                  className="h-9 w-auto max-w-[150px] object-contain rounded"
+                />
+              ) : (
+                <div className="w-9 h-9 rounded-full bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <Activity className="w-5 h-5 text-primary" />
+                </div>
+              )}
+              <ChevronDown className="w-4 h-4 text-muted-foreground" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-56">
+            <DropdownMenuLabel className="font-normal">
+              <p className="text-sm font-medium truncate">{displayName}</p>
+              <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleSignOut} className="gap-2 text-destructive">
+              <LogOut className="w-4 h-4" /> Sair
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </header>
   )
