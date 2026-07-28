@@ -128,13 +128,27 @@ export function NewAppointmentDialog({
             </Select>
           </div>
           <div className="space-y-2">
-            <Label>Data e Hora</Label>
+            <Label>Data e Hora da Consulta</Label>
             <Input
               type="datetime-local"
               value={date}
               onChange={(e) => setDate(e.target.value)}
+              // clicar em qualquer parte do campo abre o calendario (nao so no icone)
+              onClick={(ev) => {
+                const el = ev.currentTarget as HTMLInputElement & { showPicker?: () => void }
+                try {
+                  el.showPicker?.()
+                } catch {
+                  // navegador sem suporte: o icone nativo continua funcionando
+                }
+              }}
+              className="cursor-pointer"
               required
             />
+            <p className="text-xs text-muted-foreground">
+              Clique no campo para abrir o calendário. A confirmação por WhatsApp só é enviada
+              depois que a data e a hora forem preenchidas.
+            </p>
           </div>
           <div className="space-y-2">
             <Label>Observações Clínicas</Label>

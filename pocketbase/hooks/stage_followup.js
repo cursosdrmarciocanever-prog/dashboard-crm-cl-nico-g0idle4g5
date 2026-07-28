@@ -6,6 +6,10 @@
 // (ex.: estágio "agendamento confirmado"), o hook busca a consulta agendada do
 // paciente e preenche com a data/hora (em BRT, UTC-3).
 //
+// REGRA: se o template exige {data}/{hora} e o paciente ainda NAO tem consulta
+// futura, a mensagem nao e agendada aqui. Quem dispara e o appointment_confirmation,
+// quando a consulta for criada — assim o paciente nunca recebe data em branco.
+//
 // OBS JSVM: handlers rodam em contexto isolado — a lógica fica inline.
 
 onRecordAfterCreateSuccess((e) => {
@@ -36,6 +40,15 @@ onRecordAfterCreateSuccess((e) => {
 
       if (text.indexOf('{data}') >= 0 || text.indexOf('{hora}') >= 0) {
         const dt = nextAppointmentDateTime(patientRec.id)
+        // Sem consulta futura marcada: NAO envia agora — sairia "confirmada para
+        // ' ' as ' '". A confirmacao e disparada pelo hook appointment_confirmation
+        // no momento em que a consulta for criada, ja com data e hora reais.
+        if (!dt.data || !dt.hora) {
+          $app
+            .logger()
+            .info('[stage_followup] adiado ate agendar a consulta', 'stage', st, 'patient', patientRec.id)
+          return
+        }
         text = text.split('{data}').join(dt.data).split('{hora}').join(dt.hora)
       }
 
@@ -118,6 +131,15 @@ onRecordAfterUpdateSuccess((e) => {
 
       if (text.indexOf('{data}') >= 0 || text.indexOf('{hora}') >= 0) {
         const dt = nextAppointmentDateTime(patientRec.id)
+        // Sem consulta futura marcada: NAO envia agora — sairia "confirmada para
+        // ' ' as ' '". A confirmacao e disparada pelo hook appointment_confirmation
+        // no momento em que a consulta for criada, ja com data e hora reais.
+        if (!dt.data || !dt.hora) {
+          $app
+            .logger()
+            .info('[stage_followup] adiado ate agendar a consulta', 'stage', st, 'patient', patientRec.id)
+          return
+        }
         text = text.split('{data}').join(dt.data).split('{hora}').join(dt.hora)
       }
 
