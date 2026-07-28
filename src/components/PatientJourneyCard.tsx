@@ -10,6 +10,7 @@ import {
   Circle,
   CircleDot,
   Loader2,
+  MessageCircle,
 } from 'lucide-react'
 import type { Patient } from '@/services/patients'
 import { updatePatient } from '@/services/patients'
@@ -21,9 +22,16 @@ import {
 } from '@/lib/post-consultation-checklist'
 import { cn } from '@/lib/utils'
 
+/** Proxima consulta agendada ou, na falta dela, a ultima que ja aconteceu. */
+export interface CardAppointment {
+  kind: 'next' | 'last'
+  date: Date
+}
+
 interface PatientJourneyCardProps {
   patient: Patient
   stagnation?: StagnationInfo
+  appointment?: CardAppointment
   onClick: () => void
   onDragStart: () => void
   onDragEnd: () => void
@@ -53,6 +61,7 @@ const statusConfig: Record<
 export function PatientJourneyCard({
   patient,
   stagnation,
+  appointment,
   onClick,
   onDragStart,
   onDragEnd,
@@ -110,11 +119,36 @@ export function PatientJourneyCard({
             </p>
           )}
           <p className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
-            <CalendarIcon className="w-3 h-3 flex-shrink-0" />
+            <MessageCircle className="w-3 h-3 flex-shrink-0" />
+            Contato:{' '}
             {patient.last_contact_date
               ? format(new Date(patient.last_contact_date), 'dd/MM/yyyy')
-              : 'Sem registro'}
+              : 'sem registro'}
           </p>
+
+          {/* Consulta: proxima em destaque; se nao houver, a ultima realizada */}
+          {appointment ? (
+            <p
+              className={cn(
+                'flex items-center gap-1 text-xs mt-0.5 font-medium',
+                appointment.kind === 'next'
+                  ? 'text-blue-600 dark:text-blue-400'
+                  : 'text-muted-foreground',
+              )}
+            >
+              <CalendarIcon className="w-3 h-3 flex-shrink-0" />
+              {appointment.kind === 'next' ? (
+                <>Próxima: {format(appointment.date, "dd/MM 'às' HH:mm")}</>
+              ) : (
+                <>Última: {format(appointment.date, 'dd/MM/yyyy')}</>
+              )}
+            </p>
+          ) : (
+            <p className="flex items-center gap-1 text-xs text-muted-foreground/60 mt-0.5">
+              <CalendarIcon className="w-3 h-3 flex-shrink-0" />
+              Sem consulta
+            </p>
+          )}
           {patient.traffic_platform && (
             <p className="flex items-center gap-1 text-xs text-muted-foreground mt-0.5">
               <Globe className="w-3 h-3 flex-shrink-0" />

@@ -2,11 +2,12 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AlertTriangle, Eye, EyeOff } from 'lucide-react'
 import { getPatients, updatePatient, type Patient } from '@/services/patients'
 import { getStageHistory, type PatientStageHistory } from '@/services/patient-stage-history'
+import { getAppointments, type Appointment } from '@/services/appointments'
 import { useRealtime } from '@/hooks/use-realtime'
 import { JOURNEY_STAGES, type JourneyStage } from '@/lib/journey-stages'
 import { stageToFlags } from '@/lib/journey-sync'
 import { calculateStagnation, type StagnationInfo } from '@/lib/stagnation'
-import { PatientJourneyCard } from '@/components/PatientJourneyCard'
+import { PatientJourneyCard, type CardAppointment } from '@/components/PatientJourneyCard'
 import { PatientDetailPanel } from '@/components/PatientDetailPanel'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -15,6 +16,7 @@ import { cn } from '@/lib/utils'
 export default function PatientJourney() {
   const [patients, setPatients] = useState<Patient[]>([])
   const [history, setHistory] = useState<PatientStageHistory[]>([])
+  const [appointments, setAppointments] = useState<Appointment[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [panelOpen, setPanelOpen] = useState(false)
   const [draggedId, setDraggedId] = useState<string | null>(null)
@@ -22,9 +24,14 @@ export default function PatientJourney() {
   const [showStagnantOnly, setShowStagnantOnly] = useState(false)
 
   const load = useCallback(async () => {
-    const [patientData, historyData] = await Promise.all([getPatients(), getStageHistory()])
+    const [patientData, historyData, appointmentData] = await Promise.all([
+      getPatients(),
+      getStageHistory(),
+      getAppointments().catch(() => [] as Appointment[]),
+    ])
     setPatients(patientData)
     setHistory(historyData)
+    setAppointments(appointmentData)
   }, [])
 
   useEffect(() => {
@@ -32,8 +39,34 @@ export default function PatientJourney() {
   }, [load])
   useRealtime('patients', load)
   useRealtime('patient_stage_history', load)
+  useRealtime('appointments', load)
 
   const selectedPatient = patients.find((p) => p.id === selectedId) ?? null
+
+  // Para cada paciente: a PROXIMA consulta agendada; se nao houver, a ULTIMA que
+  // ja aconteceu. Canceladas nao contam. Uma consulta so para todos os cartoes.
+  const appointmentMap = useMemo(() => {
+    const now = new Date()
+    const map = new Map<string, CardAppointment>()
+    const sorted = appointments
+      .filter((a) => a.status !== 'cancelled' && a.appointment_date)
+      .sort(
+        (a, b) =>
+          new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime(),
+      )
+    for (const a of sorted) {
+      const date = new Date(a.appointment_date)
+      const current = map.get(a.patient_id)
+      if (date >= now) {
+        // primeira futura ganha; nunca sobrescreve uma futura ja registrada
+        if (!current || current.kind === 'last') map.set(a.patient_id, { kind: 'next', date })
+      } else if (!current || current.kind === 'last') {
+        // passadas vem em ordem crescente: a ultima a entrar e a mais recente
+        map.set(a.patient_id, { kind: 'last', date })
+      }
+    }
+    return map
+  }, [appointments])
 
   const stagnationMap = useMemo(() => {
     const map = new Map<string, StagnationInfo>()
@@ -154,6 +187,7 @@ export default function PatientJourney() {
                     key={patient.id}
                     patient={patient}
                     stagnation={stagnationMap.get(patient.id)}
+                    appointment={appointmentMap.get(patient.id)}
                     onClick={() => handleCardClick(patient)}
                     onDragStart={() => setDraggedId(patient.id)}
                     onDragEnd={() => {
