@@ -114,24 +114,31 @@ export default function PatientJourney() {
     setPanelOpen(true)
   }
 
+  /**
+   * Unico caminho para mudar a etapa de um paciente no quadro — vale tanto para
+   * arrastar o cartao quanto para clicar no checklist de pos-consulta. Depois de
+   * salvar, cobra o agendamento quando a etapa exige retorno e nao ha consulta
+   * futura marcada.
+   */
+  const moverParaEtapa = async (patient: Patient, stage: JourneyStage) => {
+    if (patient.journey_stage === stage) return
+    const flags = stageToFlags(stage)
+    await updatePatient(patient.id, { journey_stage: stage, ...flags })
+    await load()
+
+    const temFutura = appointmentMap.get(patient.id)?.kind === 'next'
+    if (exigeProximaConsulta(stage) && !temFutura) {
+      const etapa = JOURNEY_STAGES.find((s) => s.value === stage)?.label ?? ''
+      setCobranca({ id: patient.id, nome: patient.name, etapa })
+    }
+  }
+
   const handleDrop = async (stage: JourneyStage) => {
     setDragOverStage(null)
     if (!draggedId) return
     const patient = patients.find((p) => p.id === draggedId)
     setDraggedId(null)
-    if (patient && patient.journey_stage !== stage) {
-      const flags = stageToFlags(stage)
-      await updatePatient(draggedId, { journey_stage: stage, ...flags })
-      await load()
-
-      // Regra da clinica: entrou no fluxo, tem que sair com retorno marcado.
-      // Se a etapa exige e nao ha consulta futura, cobra na hora.
-      const temFutura = appointmentMap.get(patient.id)?.kind === 'next'
-      if (exigeProximaConsulta(stage) && !temFutura) {
-        const etapa = JOURNEY_STAGES.find((s) => s.value === stage)?.label ?? ''
-        setCobranca({ id: patient.id, nome: patient.name, etapa })
-      }
-    }
+    if (patient) await moverParaEtapa(patient, stage)
   }
 
   const filtrar = (lista: Patient[]) => {
@@ -253,6 +260,7 @@ export default function PatientJourney() {
                     stagnation={stagnationMap.get(patient.id)}
                     appointment={appointmentMap.get(patient.id)}
                     pendencia={pendenciaMap.get(patient.id)}
+                    onStageChange={(stage) => moverParaEtapa(patient, stage)}
                     onClick={() => handleCardClick(patient)}
                     onDragStart={() => setDraggedId(patient.id)}
                     onDragEnd={() => {

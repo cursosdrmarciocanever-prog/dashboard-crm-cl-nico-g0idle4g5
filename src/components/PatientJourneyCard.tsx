@@ -14,7 +14,7 @@ import {
   CalendarX,
 } from 'lucide-react'
 import type { Patient } from '@/services/patients'
-import { updatePatient } from '@/services/patients'
+import type { JourneyStage } from '@/lib/journey-stages'
 import type { StagnationInfo } from '@/lib/stagnation'
 import type { PendenciaAgendamento } from '@/lib/next-appointment-rule'
 import {
@@ -36,6 +36,8 @@ interface PatientJourneyCardProps {
   appointment?: CardAppointment
   /** Está no fluxo e sem próxima consulta marcada. */
   pendencia?: PendenciaAgendamento | null
+  /** Muda a etapa pelo checklist. A pagina cobra o agendamento quando necessario. */
+  onStageChange: (stage: JourneyStage) => Promise<void>
   onClick: () => void
   onDragStart: () => void
   onDragEnd: () => void
@@ -67,6 +69,7 @@ export function PatientJourneyCard({
   stagnation,
   appointment,
   pendencia,
+  onStageChange,
   onClick,
   onDragStart,
   onDragEnd,
@@ -80,7 +83,7 @@ export function PatientJourneyCard({
     if (!stage || patient.journey_stage === stage || updatingStage) return
     setUpdatingStage(stage)
     try {
-      await updatePatient(patient.id, { journey_stage: stage })
+      await onStageChange(stage)
     } finally {
       setUpdatingStage(null)
     }
