@@ -11,10 +11,12 @@ import {
   CircleDot,
   Loader2,
   MessageCircle,
+  CalendarX,
 } from 'lucide-react'
 import type { Patient } from '@/services/patients'
 import { updatePatient } from '@/services/patients'
 import type { StagnationInfo } from '@/lib/stagnation'
+import type { PendenciaAgendamento } from '@/lib/next-appointment-rule'
 import {
   POST_CONSULTATION_CHECKLIST,
   getChecklistStatus,
@@ -32,6 +34,8 @@ interface PatientJourneyCardProps {
   patient: Patient
   stagnation?: StagnationInfo
   appointment?: CardAppointment
+  /** Está no fluxo e sem próxima consulta marcada. */
+  pendencia?: PendenciaAgendamento | null
   onClick: () => void
   onDragStart: () => void
   onDragEnd: () => void
@@ -62,6 +66,7 @@ export function PatientJourneyCard({
   patient,
   stagnation,
   appointment,
+  pendencia,
   onClick,
   onDragStart,
   onDragEnd,
@@ -97,6 +102,7 @@ export function PatientJourneyCard({
       className={cn(
         'bg-card border rounded-lg p-3 cursor-pointer hover:shadow-md hover:border-primary/30 transition-all duration-200 group',
         isDragging && 'opacity-50',
+        pendencia && !isStagnant && 'border-amber-400 bg-amber-50/50 dark:bg-amber-950/20',
         isStagnant && 'border-red-400 bg-red-50/50 dark:bg-red-950/20',
       )}
     >
@@ -147,6 +153,22 @@ export function PatientJourneyCard({
             <p className="flex items-center gap-1 text-xs text-muted-foreground/60 mt-0.5">
               <CalendarIcon className="w-3 h-3 flex-shrink-0" />
               Sem consulta
+            </p>
+          )}
+
+          {/* Regra da clinica: no fluxo, tem que ter retorno marcado */}
+          {pendencia && (
+            <p
+              className={cn(
+                'flex items-center gap-1 text-xs font-semibold mt-1',
+                pendencia.urgente
+                  ? 'text-red-600 dark:text-red-400'
+                  : 'text-amber-600 dark:text-amber-400',
+              )}
+            >
+              <CalendarX className="w-3 h-3 flex-shrink-0" />
+              Falta agendar retorno
+              {pendencia.diasSemAgendamento !== null && ` (há ${pendencia.diasSemAgendamento}d)`}
             </p>
           )}
           {patient.traffic_platform && (

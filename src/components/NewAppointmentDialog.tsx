@@ -23,8 +23,34 @@ import { getPatients, Patient } from '@/services/patients'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, Clock } from 'lucide-react'
 
-export function NewAppointmentDialog() {
-  const [open, setOpen] = useState(false)
+interface NewAppointmentDialogProps {
+  /** Modo controlado: o sistema abre o diálogo (ex.: cobrança de retorno). */
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  /** Já vem com este paciente selecionado. */
+  patientId?: string
+  /** Esconde o botão que abre o diálogo (usado no modo controlado). */
+  hideTrigger?: boolean
+  /** Explicação exibida no topo, quando o diálogo foi aberto pelo sistema. */
+  notice?: string
+  onCreated?: () => void
+}
+
+export function NewAppointmentDialog({
+  open: openProp,
+  onOpenChange,
+  patientId: patientIdProp,
+  hideTrigger,
+  notice,
+  onCreated,
+}: NewAppointmentDialogProps = {}) {
+  const [internalOpen, setInternalOpen] = useState(false)
+  const controlled = openProp !== undefined
+  const open = controlled ? openProp : internalOpen
+  const setOpen = (v: boolean) => {
+    if (!controlled) setInternalOpen(v)
+    onOpenChange?.(v)
+  }
   const [loading, setLoading] = useState(false)
   const [patients, setPatients] = useState<Patient[]>([])
   const { toast } = useToast()
@@ -38,8 +64,9 @@ export function NewAppointmentDialog() {
       getPatients()
         .then(setPatients)
         .catch(() => {})
+      if (patientIdProp) setPatientId(patientIdProp)
     }
-  }, [open])
+  }, [open, patientIdProp])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -58,6 +85,7 @@ export function NewAppointmentDialog() {
       setPatientId('')
       setDate('')
       setNotes('')
+      onCreated?.()
     } catch {
       toast({ title: 'Erro', description: 'Falha ao agendar.', variant: 'destructive' })
     } finally {
@@ -67,15 +95,22 @@ export function NewAppointmentDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button variant="outline" className="gap-2 shadow-sm">
-          <Clock className="w-4 h-4" /> Agendar Consulta
-        </Button>
-      </DialogTrigger>
+      {!hideTrigger && (
+        <DialogTrigger asChild>
+          <Button variant="outline" className="gap-2 shadow-sm">
+            <Clock className="w-4 h-4" /> Agendar Consulta
+          </Button>
+        </DialogTrigger>
+      )}
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>Agendar Consulta</DialogTitle>
         </DialogHeader>
+        {notice && (
+          <p className="text-sm rounded-md border border-amber-300 bg-amber-50 text-amber-900 px-3 py-2 dark:bg-amber-950/40 dark:text-amber-200 dark:border-amber-800">
+            {notice}
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4 pt-2">
           <div className="space-y-2">
             <Label>Paciente</Label>

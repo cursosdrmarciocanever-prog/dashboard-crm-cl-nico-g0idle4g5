@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { AlertTriangle, Eye, EyeOff } from 'lucide-react'
+import { AlertTriangle, Eye, EyeOff, CalendarX } from 'lucide-react'
 import { getPatients, updatePatient, type Patient } from '@/services/patients'
 import { getStageHistory, type PatientStageHistory } from '@/services/patient-stage-history'
 import { getAppointments, type Appointment } from '@/services/appointments'
@@ -7,11 +7,19 @@ import { useRealtime } from '@/hooks/use-realtime'
 import { JOURNEY_STAGES, type JourneyStage } from '@/lib/journey-stages'
 import { stageToFlags } from '@/lib/journey-sync'
 import { calculateStagnation, type StagnationInfo } from '@/lib/stagnation'
+import {
+  calcularPendencia,
+  exigeProximaConsulta,
+  type PendenciaAgendamento,
+} from '@/lib/next-appointment-rule'
 import { PatientJourneyCard, type CardAppointment } from '@/components/PatientJourneyCard'
 import { PatientDetailPanel } from '@/components/PatientDetailPanel'
+import { NewAppointmentDialog } from '@/components/NewAppointmentDialog'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
+
+type Filtro = 'todos' | 'estagnados' | 'sem_agendamento'
 
 export default function PatientJourney() {
   const [patients, setPatients] = useState<Patient[]>([])
@@ -21,7 +29,9 @@ export default function PatientJourney() {
   const [panelOpen, setPanelOpen] = useState(false)
   const [draggedId, setDraggedId] = useState<string | null>(null)
   const [dragOverStage, setDragOverStage] = useState<string | null>(null)
-  const [showStagnantOnly, setShowStagnantOnly] = useState(false)
+  const [filtro, setFiltro] = useState<Filtro>('todos')
+  // Cobranca de retorno: paciente que entrou no fluxo e ficou sem consulta futura
+  const [cobranca, setCobranca] = useState<{ id: string; nome: string; etapa: string } | null>(null)
 
   const load = useCallback(async () => {
     const [patientData, historyData, appointmentData] = await Promise.all([
@@ -51,8 +61,7 @@ export default function PatientJourney() {
     const sorted = appointments
       .filter((a) => a.status !== 'cancelled' && a.appointment_date)
       .sort(
-        (a, b) =>
-          new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime(),
+        (a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime(),
       )
     for (const a of sorted) {
       const date = new Date(a.appointment_date)
@@ -67,6 +76,24 @@ export default function PatientJourney() {
     }
     return map
   }, [appointments])
+
+  // Quem esta no fluxo e sem retorno marcado
+  const pendenciaMap = useMemo(() => {
+    const map = new Map<string, PendenciaAgendamento>()
+    for (const p of patients) {
+      const consulta = appointmentMap.get(p.id)
+      const pendencia = calcularPendencia(
+        p.journey_stage,
+        consulta?.kind === 'next' ? consulta.date : undefined,
+        consulta?.kind === 'last' ? consulta.date : undefined,
+        p.created,
+      )
+      if (pendencia) map.set(p.id, pendencia)
+    }
+    return map
+  }, [patients, appointmentMap])
+
+  const semAgendamentoCount = pendenciaMap.size
 
   const stagnationMap = useMemo(() => {
     const map = new Map<string, StagnationInfo>()
@@ -95,8 +122,22 @@ export default function PatientJourney() {
     if (patient && patient.journey_stage !== stage) {
       const flags = stageToFlags(stage)
       await updatePatient(draggedId, { journey_stage: stage, ...flags })
-      load()
+      await load()
+
+      // Regra da clinica: entrou no fluxo, tem que sair com retorno marcado.
+      // Se a etapa exige e nao ha consulta futura, cobra na hora.
+      const temFutura = appointmentMap.get(patient.id)?.kind === 'next'
+      if (exigeProximaConsulta(stage) && !temFutura) {
+        const etapa = JOURNEY_STAGES.find((s) => s.value === stage)?.label ?? ''
+        setCobranca({ id: patient.id, nome: patient.name, etapa })
+      }
     }
+  }
+
+  const filtrar = (lista: Patient[]) => {
+    if (filtro === 'estagnados') return lista.filter((p) => stagnationMap.get(p.id)?.isStagnant)
+    if (filtro === 'sem_agendamento') return lista.filter((p) => pendenciaMap.has(p.id))
+    return lista
   }
 
   return (
@@ -105,10 +146,10 @@ export default function PatientJourney() {
         <div>
           <h1 className="text-3xl font-bold tracking-tight text-foreground">Jornada do Paciente</h1>
           <p className="text-muted-foreground mt-1">
-            Acompanhe o progresso dos pacientes pelo funil de atendimento
+            Todo paciente no fluxo deve ter a próxima consulta agendada
           </p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center flex-wrap gap-2">
           {stagnantCount > 0 && (
             <Badge variant="destructive" className="flex items-center gap-1.5 px-3 py-1.5 text-sm">
               <AlertTriangle className="w-3.5 h-3.5" />
@@ -116,12 +157,28 @@ export default function PatientJourney() {
             </Badge>
           )}
           <Button
-            variant={showStagnantOnly ? 'default' : 'outline'}
+            variant={filtro === 'sem_agendamento' ? 'default' : 'outline'}
             size="sm"
-            onClick={() => setShowStagnantOnly((v) => !v)}
+            onClick={() =>
+              setFiltro((f) => (f === 'sem_agendamento' ? 'todos' : 'sem_agendamento'))
+            }
+            className={cn(
+              'flex items-center gap-2',
+              filtro !== 'sem_agendamento' &&
+                semAgendamentoCount > 0 &&
+                'border-amber-400 text-amber-700 dark:text-amber-400',
+            )}
+          >
+            <CalendarX className="w-4 h-4" />
+            Sem retorno agendado ({semAgendamentoCount})
+          </Button>
+          <Button
+            variant={filtro === 'estagnados' ? 'default' : 'outline'}
+            size="sm"
+            onClick={() => setFiltro((f) => (f === 'estagnados' ? 'todos' : 'estagnados'))}
             className="flex items-center gap-2"
           >
-            {showStagnantOnly ? (
+            {filtro === 'estagnados' ? (
               <>
                 <EyeOff className="w-4 h-4" />
                 Ver todos
@@ -139,12 +196,11 @@ export default function PatientJourney() {
       <div className="flex gap-4 overflow-x-auto pb-4 min-h-[60vh]">
         {JOURNEY_STAGES.map((stage) => {
           const stagePatients = patients.filter((p) => p.journey_stage === stage.value)
-          const visiblePatients = showStagnantOnly
-            ? stagePatients.filter((p) => stagnationMap.get(p.id)?.isStagnant)
-            : stagePatients
+          const visiblePatients = filtrar(stagePatients)
           const stageStagnantCount = stagePatients.filter(
             (p) => stagnationMap.get(p.id)?.isStagnant,
           ).length
+          const stageSemAgendamento = stagePatients.filter((p) => pendenciaMap.has(p.id)).length
 
           return (
             <div
@@ -169,6 +225,14 @@ export default function PatientJourney() {
                       {stageStagnantCount}
                     </span>
                   )}
+                  {stageSemAgendamento > 0 && (
+                    <span
+                      className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-white text-[10px] font-bold"
+                      title={`${stageSemAgendamento} sem retorno agendado`}
+                    >
+                      {stageSemAgendamento}
+                    </span>
+                  )}
                 </div>
                 <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                   {visiblePatients.length}
@@ -188,6 +252,7 @@ export default function PatientJourney() {
                     patient={patient}
                     stagnation={stagnationMap.get(patient.id)}
                     appointment={appointmentMap.get(patient.id)}
+                    pendencia={pendenciaMap.get(patient.id)}
                     onClick={() => handleCardClick(patient)}
                     onDragStart={() => setDraggedId(patient.id)}
                     onDragEnd={() => {
@@ -198,7 +263,7 @@ export default function PatientJourney() {
                 ))}
                 {visiblePatients.length === 0 && (
                   <div className="text-center text-xs text-muted-foreground py-8">
-                    {showStagnantOnly ? 'Nenhum estagnado' : 'Nenhum paciente'}
+                    {filtro === 'todos' ? 'Nenhum paciente' : 'Nenhum nesta situação'}
                   </div>
                 )}
               </div>
@@ -206,6 +271,23 @@ export default function PatientJourney() {
           )
         })}
       </div>
+
+      {/* Cobranca de retorno: abre ja com o paciente selecionado */}
+      <NewAppointmentDialog
+        open={!!cobranca}
+        onOpenChange={(o) => !o && setCobranca(null)}
+        patientId={cobranca?.id}
+        hideTrigger
+        notice={
+          cobranca
+            ? `${cobranca.nome} está em "${cobranca.etapa}" e não tem próxima consulta marcada. Agende o retorno agora — enquanto não agendar, o cartão fica sinalizado no quadro.`
+            : undefined
+        }
+        onCreated={() => {
+          setCobranca(null)
+          load()
+        }}
+      />
 
       <PatientDetailPanel
         patient={selectedPatient}
