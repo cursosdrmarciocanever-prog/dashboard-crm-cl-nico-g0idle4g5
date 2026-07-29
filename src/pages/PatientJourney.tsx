@@ -31,7 +31,12 @@ export default function PatientJourney() {
   const [dragOverStage, setDragOverStage] = useState<string | null>(null)
   const [filtro, setFiltro] = useState<Filtro>('todos')
   // Cobranca de retorno: paciente que entrou no fluxo e ficou sem consulta futura
-  const [cobranca, setCobranca] = useState<{ id: string; nome: string; etapa: string } | null>(null)
+  const [cobranca, setCobranca] = useState<{
+    id: string
+    nome: string
+    etapa: string
+    voltaAoInicio: boolean
+  } | null>(null)
 
   const load = useCallback(async () => {
     const [patientData, historyData, appointmentData] = await Promise.all([
@@ -129,7 +134,12 @@ export default function PatientJourney() {
     const temFutura = appointmentMap.get(patient.id)?.kind === 'next'
     if (exigeProximaConsulta(stage) && !temFutura) {
       const etapa = JOURNEY_STAGES.find((s) => s.value === stage)?.label ?? ''
-      setCobranca({ id: patient.id, nome: patient.name, etapa })
+      setCobranca({
+        id: patient.id,
+        nome: patient.name,
+        etapa,
+        voltaAoInicio: stage === 'proxima_consulta_agendada',
+      })
     }
   }
 
@@ -288,7 +298,10 @@ export default function PatientJourney() {
         hideTrigger
         notice={
           cobranca
-            ? `${cobranca.nome} está em "${cobranca.etapa}" e não tem próxima consulta marcada. Agende o retorno agora — enquanto não agendar, o cartão fica sinalizado no quadro.`
+            ? `${cobranca.nome} está em "${cobranca.etapa}" e não tem próxima consulta marcada. Agende o retorno agora — enquanto não agendar, o cartão fica sinalizado no quadro.` +
+              (cobranca.voltaAoInicio
+                ? ' Ao salvar, o paciente volta para "Agendamento Confirmado" e o ciclo recomeça do início.'
+                : '')
             : undefined
         }
         onCreated={() => {

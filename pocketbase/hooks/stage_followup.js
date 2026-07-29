@@ -108,8 +108,15 @@ onRecordAfterCreateSuccess((e) => {
 onRecordAfterUpdateSuccess((e) => {
   const oldStage = e.record.original().getString('journey_stage')
   const newStage = e.record.getString('journey_stage')
-  if (newStage && newStage !== oldStage) {
+  // Volta do fim do quadro para o inicio (novo ciclo): a confirmacao com data e
+  // hora ja foi enviada pelo appointment_confirmation na ultima coluna. Reenviar
+  // aqui seria a mesma informacao duas vezes.
+  const reaberturaDeCiclo =
+    oldStage === 'proxima_consulta_agendada' && newStage === 'agendamento_confirmado'
+  if (newStage && newStage !== oldStage && !reaberturaDeCiclo) {
     scheduleFollowup(e.record, newStage)
+  } else if (reaberturaDeCiclo) {
+    $app.logger().info('[stage_followup] reabertura de ciclo — sem mensagem', 'patient', e.record.id)
   }
   return e.next()
 
