@@ -1,5 +1,12 @@
-// Captura de leads: recebe o webhook de mensagens do Evolution API e cria/atualiza
-// o lead no CRM automaticamente. Endpoint: POST /api/wa-inbound?token=SECRET
+// Captura de leads e historico de conversa: recebe o webhook de mensagens do
+// Evolution API. Endpoint: POST /api/wa-inbound?token=SECRET
+//
+// DUAS DIRECOES:
+//   - Mensagem do paciente (fromMe = false): cria/atualiza o lead e grava como 'in'.
+//   - Mensagem da clinica (fromMe = true): grava como 'out'. E o que a secretaria
+//     digita no celular — sem isso o Inbox mostraria so metade da conversa.
+//     Nao cria paciente: se o numero nao esta no CRM, a mensagem e ignorada (evita
+//     virar paciente qualquer contato pessoal feito por esse WhatsApp).
 //
 // Config por variavel de ambiente: WA_WEBHOOK_TOKEN (segredo compartilhado).
 // O Evolution deve ser configurado para chamar essa URL no evento MESSAGES_UPSERT.
@@ -19,15 +26,14 @@ routerAdd('POST', '/api/wa-inbound', (e) => {
     return e.json(200, { ignored: 'sem data' })
   }
 
-  // Ignora mensagens enviadas por nos mesmos e mensagens de grupo
-  if (data.key.fromMe) return e.json(200, { ignored: 'fromMe' })
+  const fromMe = !!data.key.fromMe
   const remoteJid = data.key.remoteJid || ''
   if (remoteJid.indexOf('@g.us') >= 0) return e.json(200, { ignored: 'grupo' })
 
   const phoneDigits = remoteJid.split('@')[0].replace(/\D/g, '')
   if (!phoneDigits) return e.json(200, { ignored: 'sem telefone' })
 
-  const pushName = data.pushName || ''
+  const pushName = fromMe ? '' : data.pushName || ''
   let text = ''
   if (data.message) {
     text =
@@ -53,6 +59,11 @@ routerAdd('POST', '/api/wa-inbound', (e) => {
     }
   } catch (err) {
     $app.logger().error('[wa_inbound] busca paciente falhou', 'error', err.message)
+  }
+
+  // Mensagem da clinica para um numero que nao esta no CRM: nada a registrar.
+  if (fromMe && !existing) {
+    return e.json(200, { ignored: 'fromMe sem paciente' })
   }
 
   let patientId = null
@@ -82,19 +93,56 @@ routerAdd('POST', '/api/wa-inbound', (e) => {
     return e.json(500, { error: 'save failed' })
   }
 
-  // Grava a mensagem recebida no historico (Inbox de Conversas)
+  // Grava a mensagem no historico (Inbox de Conversas)
   try {
+    const waId = (data.key && data.key.id) || ''
+
+    // O que o CRM envia volta pelo webhook como fromMe. Sem esta checagem a
+    // mesma mensagem apareceria duas vezes no Inbox.
+    if (fromMe && jaRegistrada(waId, phoneDigits, text)) {
+      return e.json(200, { ignored: 'eco do proprio CRM' })
+    }
+
     const msgCol = $app.findCollectionByNameOrId('messages')
     const msg = new Record(msgCol)
     msg.set('patient_id', patientId)
     msg.set('phone', phoneDigits)
-    msg.set('direction', 'in')
+    msg.set('direction', fromMe ? 'out' : 'in')
     msg.set('text', text || '[mídia/anexo]')
-    msg.set('status', 'received')
-    msg.set('wa_message_id', (data.key && data.key.id) || '')
+    msg.set('status', fromMe ? 'sent' : 'received')
+    msg.set('wa_message_id', waId)
     $app.save(msg)
+    if (fromMe) {
+      $app.logger().info('[wa_inbound] mensagem da clinica registrada', 'phone', phoneDigits)
+    }
   } catch (err) {
     $app.logger().error('[wa_inbound] gravar mensagem falhou', 'error', err.message)
+  }
+
+  // Ja existe essa mensagem de saida? Confere pelo id do WhatsApp e, se o id nao
+  // veio na resposta do envio, pelo texto identico nos ultimos 2 minutos.
+  function jaRegistrada(waId, phone, texto) {
+    try {
+      if (waId) {
+        const porId = $app.findRecordsByFilter('messages', 'wa_message_id = {:wid}', '', 1, 0, {
+          wid: waId,
+        })
+        if (porId.length) return true
+      }
+      if (!texto) return false
+      const desde = new Date(Date.now() - 120000).toISOString().replace('T', ' ')
+      const recentes = $app.findRecordsByFilter(
+        'messages',
+        "direction = 'out' && phone = {:p} && text = {:t} && created >= {:since}",
+        '',
+        1,
+        0,
+        { p: phone, t: texto, since: desde },
+      )
+      return recentes.length > 0
+    } catch (err) {
+      return false // em caso de duvida, registra: perder mensagem e pior que duplicar
+    }
   }
 
   return e.json(200, result)
