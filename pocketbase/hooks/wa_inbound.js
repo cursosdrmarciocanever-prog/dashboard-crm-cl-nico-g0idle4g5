@@ -28,6 +28,11 @@ routerAdd('POST', '/api/wa-inbound', (e) => {
 
   const fromMe = !!data.key.fromMe
   const remoteJid = data.key.remoteJid || ''
+  // Rastro de TODO evento que chega: sem isso nao da para distinguir "o Evolution
+  // nao mandou" de "chegou e foi descartado".
+  $app
+    .logger()
+    .info('[wa_inbound] evento recebido', 'fromMe', fromMe, 'jid', remoteJid, 'evento', payload.event || '?')
   if (remoteJid.indexOf('@g.us') >= 0) return e.json(200, { ignored: 'grupo' })
 
   const phoneDigits = remoteJid.split('@')[0].replace(/\D/g, '')
@@ -63,6 +68,7 @@ routerAdd('POST', '/api/wa-inbound', (e) => {
 
   // Mensagem da clinica para um numero que nao esta no CRM: nada a registrar.
   if (fromMe && !existing) {
+    $app.logger().info('[wa_inbound] fromMe ignorado: numero fora do CRM', 'phone', phoneDigits)
     return e.json(200, { ignored: 'fromMe sem paciente' })
   }
 
@@ -100,6 +106,7 @@ routerAdd('POST', '/api/wa-inbound', (e) => {
     // O que o CRM envia volta pelo webhook como fromMe. Sem esta checagem a
     // mesma mensagem apareceria duas vezes no Inbox.
     if (fromMe && jaRegistrada(waId, phoneDigits, text)) {
+      $app.logger().info('[wa_inbound] fromMe ignorado: eco do proprio CRM', 'phone', phoneDigits)
       return e.json(200, { ignored: 'eco do proprio CRM' })
     }
 
