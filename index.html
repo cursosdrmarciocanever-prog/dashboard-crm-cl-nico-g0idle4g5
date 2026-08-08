@@ -15,8 +15,10 @@
 
   <body>
     <div id="root"></div>
-    <!-- @skip-protected: Do not remove. Required for app features. -->
-    <script src="https://goskip.dev/skip.js"></script>
+    <!-- O script goskip.dev/skip.js foi removido: era ele que injetava o selo
+         "Criado com o Skip" no canto da tela. O CRM roda na VPS da clínica, não
+         na plataforma do Skip, então ele não tinha função aqui — só carregava
+         código de terceiros em toda visita a um sistema com dados de paciente. -->
     <!-- @skip-protected: Do not remove. App entrypoint. -->
     <script type="module" src="/src/main.tsx"></script>
   </body>
