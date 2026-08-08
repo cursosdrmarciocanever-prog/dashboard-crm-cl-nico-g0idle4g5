@@ -7,6 +7,10 @@
 # independentes do WhatsApp. Avisar por WhatsApp seria inútil: o que caiu é
 # justamente ele.
 #
+# RECUPERACAO AUTOMATICA: ao detectar a queda, tenta reiniciar a instancia uma
+# vez antes de incomodar alguem. Socket derrubado volta sozinho em segundos; so
+# quando o restart nao resolve (sessao exigindo QR novo) e que o alerta sai.
+#
 # Uso manual:  /docker/apps/crm/deploy/whatsapp-watchdog.sh
 # TESTE:       /docker/apps/crm/deploy/whatsapp-watchdog.sh --teste
 #              manda um alerta de mentira agora, para provar que ele chega.
@@ -114,14 +118,40 @@ if [ -z "$EVO_URL" ] || [ -z "$EVO_KEY" ] || [ -z "$EVO_INSTANCE" ]; then
 fi
 
 # consulta o estado da instância
-RESP="$(curl -sS -m 20 "${EVO_URL}/instance/connectionState/${EVO_INSTANCE}" \
-  -H "apikey: ${EVO_KEY}" 2>/dev/null || true)"
+consultar_estado() {
+  local resp
+  resp="$(curl -sS -m 20 "${EVO_URL}/instance/connectionState/${EVO_INSTANCE}" \
+    -H "apikey: ${EVO_KEY}" 2>/dev/null || true)"
+  if [ -z "$resp" ]; then
+    echo "api_inacessivel"
+    return
+  fi
+  local st
+  st="$(echo "$resp" | grep -o '"state"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')"
+  [ -z "$st" ] && st="resposta_inesperada"
+  echo "$st"
+}
 
-if [ -z "$RESP" ]; then
-  STATE="api_inacessivel"
-else
-  STATE="$(echo "$RESP" | grep -o '"state"[[:space:]]*:[[:space:]]*"[^"]*"' | head -1 | sed 's/.*"\([^"]*\)"$/\1/')"
-  [ -z "$STATE" ] && STATE="resposta_inesperada"
+STATE="$(consultar_estado)"
+
+# Tenta religar sozinho antes de incomodar alguem. So faz sentido quando a API
+# do Evolution responde: se ela esta inacessivel, reiniciar a instancia nao e o
+# problema. Uma tentativa por execucao — o cron roda a cada 15 min, entao
+# insistir aqui so atrasaria o alerta de verdade.
+if [ "$STATE" != "open" ] && [ "$STATE" != "api_inacessivel" ]; then
+  log "Queda detectada (estado '$STATE'). Tentando restart automatico..."
+  curl -sS -m 20 -X POST "${EVO_URL}/instance/restart/${EVO_INSTANCE}" \
+    -H "apikey: ${EVO_KEY}" -o /dev/null 2>/dev/null || true
+  sleep 30
+  NOVO_ESTADO="$(consultar_estado)"
+  if [ "$NOVO_ESTADO" = "open" ]; then
+    log "RECUPERADO SOZINHO: restart resolveu (nenhum alerta enviado)."
+    STATE="$NOVO_ESTADO"
+    RECUPERADO_AUTO=1
+  else
+    log "Restart nao resolveu (estado '$NOVO_ESTADO'). Segue para alerta."
+    STATE="$NOVO_ESTADO"
+  fi
 fi
 
 # estado anterior
@@ -137,9 +167,16 @@ LAST_ALERT="$PREV_ALERT"
 
 if [ "$STATE" = "open" ]; then
   # recuperou depois de ter caído?
-  if [ -n "$PREV_STATE" ] && [ "$PREV_STATE" != "open" ]; then
-    notify "✅ WhatsApp da clínica RECONECTADO. Os lembretes voltaram a ser enviados normalmente."
-    log "RECUPEROU: estado open (anterior: $PREV_STATE). Telegram enviado."
+  if [ "${RECUPERADO_AUTO:-0}" = "1" ]; then
+    # Religou por conta propria neste mesmo ciclo: nao ha o que avisar. Avisar
+    # aqui seria justamente o barulho que faz o alerta importante ser ignorado.
+    :
+  elif [ -n "$PREV_STATE" ] && [ "$PREV_STATE" != "open" ]; then
+    if notify "✅ WhatsApp da clínica RECONECTADO. Os lembretes voltaram a ser enviados normalmente."; then
+      log "RECUPEROU: estado open (anterior: $PREV_STATE). Aviso entregue."
+    else
+      log "RECUPEROU: estado open (anterior: $PREV_STATE). AVISO NAO ENTREGUE."
+    fi
   else
     log "OK: conectado (open)."
   fi
@@ -149,6 +186,8 @@ else
   ELAPSED=$((NOW - PREV_ALERT))
   if [ "$PREV_STATE" != "$STATE" ] || [ "$ELAPSED" -ge "$REALERT_SECONDS" ]; then
     if notify "🚨 WhatsApp da clínica DESCONECTADO (estado: ${STATE}).
+
+A tentativa automática de religar JÁ FOI FEITA e não resolveu — provavelmente a sessão precisa de novo pareamento.
 
 Os lembretes automáticos (consultas e implantes) NÃO estão sendo enviados.
 
