@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { getAppointments, updateAppointment, Appointment } from '@/services/appointments'
 import {
   Table,
@@ -49,8 +49,19 @@ import { cn } from '@/lib/utils'
 import { useRealtime } from '@/hooks/use-realtime'
 import { NewAppointmentDialog } from '@/components/NewAppointmentDialog'
 import { useToast } from '@/hooks/use-toast'
+import { ToastAction } from '@/components/ui/toast'
 
 const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+
+/** Formato aceito pelo PocketBase — o mesmo usado ao criar a consulta. */
+const paraPocketBase = (d: Date) => d.toISOString().replace('T', ' ').substring(0, 19) + 'Z'
+
+/** Mesmo dia do alvo, mesmo horário da consulta original. */
+const trocarDia = (original: Date, novoDia: Date) => {
+  const d = new Date(novoDia)
+  d.setHours(original.getHours(), original.getMinutes(), 0, 0)
+  return d
+}
 
 const statusBadge = (status: Appointment['status']) => {
   if (status === 'scheduled') return { label: 'Agendado', variant: 'default' as const }
@@ -92,6 +103,50 @@ export default function Appointments() {
     }
   }
 
+  /**
+   * Remaneja a consulta para outro dia mantendo o horário. Só mexe na data —
+   * status, paciente e observações ficam intactos, e o hook de lembretes
+   * reagenda sozinho ao ver a data mudar.
+   */
+  const moverPara = async (appt: Appointment, novoDia: Date) => {
+    const original = new Date(appt.appointment_date)
+    if (isSameDay(original, novoDia)) return
+
+    const destino = trocarDia(original, novoDia)
+    const anterior = appt.appointment_date
+
+    try {
+      await updateAppointment(appt.id, { appointment_date: paraPocketBase(destino) })
+      await load()
+      const nome = appt.expand?.patient_id?.name || 'Consulta'
+      toast({
+        title: 'Consulta remanejada',
+        description: `${nome} — ${format(destino, "dd/MM 'às' HH:mm")}. Os lembretes foram reagendados.`,
+        action: (
+          <ToastAction
+            altText="Desfazer"
+            onClick={async () => {
+              try {
+                await updateAppointment(appt.id, { appointment_date: anterior })
+                await load()
+              } catch {
+                toast({ title: 'Erro', description: 'Não foi possível desfazer.', variant: 'destructive' })
+              }
+            }}
+          >
+            Desfazer
+          </ToastAction>
+        ),
+      })
+    } catch {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível remanejar a consulta.',
+        variant: 'destructive',
+      })
+    }
+  }
+
   return (
     <div className="space-y-6 animate-fade-in">
       <div className="flex justify-between items-center flex-wrap gap-4">
@@ -127,6 +182,7 @@ export default function Appointments() {
           onNext={() => setMonth(addMonths(month, 1))}
           onToday={() => setMonth(new Date())}
           onSelect={setSelected}
+          onMove={moverPara}
         />
       ) : (
         <ListView appointments={appointments} onSelect={setSelected} />
@@ -149,6 +205,7 @@ function CalendarView({
   onNext,
   onToday,
   onSelect,
+  onMove,
 }: {
   appointments: Appointment[]
   month: Date
@@ -156,7 +213,14 @@ function CalendarView({
   onNext: () => void
   onToday: () => void
   onSelect: (a: Appointment) => void
+  onMove: (a: Appointment, dia: Date) => Promise<void>
 }) {
+  // Consulta sendo arrastada e dia sob o cursor (para destacar o alvo).
+  const arrastando = useRef<Appointment | null>(null)
+  const [alvo, setAlvo] = useState<string | null>(null)
+
+  // Só consulta agendada se move: concluída e cancelada são histórico.
+  const podeMover = (a: Appointment) => a.status === 'scheduled'
   const days = useMemo(() => {
     const start = startOfWeek(startOfMonth(month), { weekStartsOn: 0 })
     const end = endOfWeek(endOfMonth(month), { weekStartsOn: 0 })
@@ -171,9 +235,14 @@ function CalendarView({
   return (
     <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
       <div className="flex items-center justify-between p-4 border-b bg-muted/10">
-        <h2 className="text-lg font-semibold capitalize">
-          {format(month, "MMMM 'de' yyyy", { locale: ptBR })}
-        </h2>
+        <div>
+          <h2 className="text-lg font-semibold capitalize">
+            {format(month, "MMMM 'de' yyyy", { locale: ptBR })}
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Arraste uma consulta para outro dia para remanejar — o horário é mantido.
+          </p>
+        </div>
         <div className="flex items-center gap-1">
           <Button variant="outline" size="sm" onClick={onToday}>
             Hoje
@@ -204,9 +273,23 @@ function CalendarView({
           return (
             <div
               key={day.toISOString()}
+              onDragOver={(e) => {
+                if (!arrastando.current) return
+                e.preventDefault() // sem isso o navegador recusa o drop
+                setAlvo(day.toDateString())
+              }}
+              onDragLeave={() => setAlvo((v) => (v === day.toDateString() ? null : v))}
+              onDrop={(e) => {
+                e.preventDefault()
+                const appt = arrastando.current
+                arrastando.current = null
+                setAlvo(null)
+                if (appt) onMove(appt, day)
+              }}
               className={cn(
-                'min-h-[92px] border-b border-r p-1.5 flex flex-col gap-1',
+                'min-h-[92px] border-b border-r p-1.5 flex flex-col gap-1 transition-colors',
                 !inMonth && 'bg-muted/20 text-muted-foreground',
+                alvo === day.toDateString() && 'bg-primary/10 ring-2 ring-inset ring-primary/40',
               )}
             >
               <span
@@ -221,18 +304,35 @@ function CalendarView({
                 {dayAppts.slice(0, 3).map((a) => (
                   <button
                     key={a.id}
+                    draggable={podeMover(a)}
+                    onDragStart={(e) => {
+                      arrastando.current = a
+                      e.dataTransfer.effectAllowed = 'move'
+                      e.dataTransfer.setData('text/plain', a.id) // exigido pelo Firefox
+                    }}
+                    onDragEnd={() => {
+                      arrastando.current = null
+                      setAlvo(null)
+                    }}
                     onClick={() => onSelect(a)}
                     className={cn(
                       'text-left text-[11px] leading-tight rounded px-1 py-0.5 truncate transition-colors',
+                      podeMover(a) && 'cursor-grab active:cursor-grabbing',
                       a.status === 'cancelled'
                         ? 'bg-destructive/10 text-destructive line-through'
                         : a.status === 'completed'
                           ? 'bg-muted text-muted-foreground'
                           : 'bg-primary/10 text-primary hover:bg-primary/20',
                     )}
-                    title={`${format(new Date(a.appointment_date), 'HH:mm')} ${
-                      a.expand?.patient_id?.name || ''
-                    }`}
+                    title={
+                      podeMover(a)
+                        ? `${format(new Date(a.appointment_date), 'HH:mm')} ${
+                            a.expand?.patient_id?.name || ''
+                          } — arraste para outro dia para remanejar`
+                        : `${format(new Date(a.appointment_date), 'HH:mm')} ${
+                            a.expand?.patient_id?.name || ''
+                          }`
+                    }
                   >
                     {format(new Date(a.appointment_date), 'HH:mm')}{' '}
                     {a.expand?.patient_id?.name || 'Paciente'}
