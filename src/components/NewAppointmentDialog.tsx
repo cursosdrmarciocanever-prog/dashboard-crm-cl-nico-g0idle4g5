@@ -21,6 +21,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { createAppointment } from '@/services/appointments'
 import { getPatients, Patient } from '@/services/patients'
 import { useToast } from '@/hooks/use-toast'
+import { AVISO_HORA_CHEIA, ehHoraCheia, PASSO_HORA_EM_SEGUNDOS } from '@/lib/appointment-time'
 import { Loader2, Clock } from 'lucide-react'
 
 interface NewAppointmentDialogProps {
@@ -71,6 +72,10 @@ export function NewAppointmentDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!patientId || !date) return
+    if (!ehHoraCheia(date)) {
+      toast({ title: 'Horário inválido', description: AVISO_HORA_CHEIA, variant: 'destructive' })
+      return
+    }
     setLoading(true)
     try {
       const formattedDate = new Date(date).toISOString().replace('T', ' ').substring(0, 19) + 'Z'
@@ -142,6 +147,7 @@ export function NewAppointmentDialog({
                   // navegador sem suporte: o icone nativo continua funcionando
                 }
               }}
+              step={PASSO_HORA_EM_SEGUNDOS}
               className="cursor-pointer"
               required
             />

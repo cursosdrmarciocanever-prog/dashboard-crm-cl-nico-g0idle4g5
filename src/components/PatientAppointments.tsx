@@ -19,6 +19,7 @@ import {
   type Appointment,
 } from '@/services/appointments'
 import { useToast } from '@/hooks/use-toast'
+import { AVISO_HORA_CHEIA, ehHoraCheia, PASSO_HORA_EM_SEGUNDOS } from '@/lib/appointment-time'
 import { cn } from '@/lib/utils'
 
 interface PatientAppointmentsProps {
@@ -208,6 +209,11 @@ function RegistrarAnteriorDialog({
     e.preventDefault()
     if (!data) return
 
+    if (!ehHoraCheia(data)) {
+      toast({ title: 'Horário inválido', description: AVISO_HORA_CHEIA, variant: 'destructive' })
+      return
+    }
+
     if (new Date(data).getTime() > Date.now()) {
       toast({
         title: 'Data no futuro',
@@ -249,7 +255,7 @@ function RegistrarAnteriorDialog({
         </DialogHeader>
         <form onSubmit={salvar} className="space-y-4">
           <p className="text-xs text-muted-foreground">
-            Para lançar atendimentos anteriores ao CRM. Não envia nenhuma mensagem ao paciente.
+            Para lançar atendimentos anteriores ao CRM. Horários de hora em hora. Não envia nenhuma mensagem ao paciente.
           </p>
           <div className="space-y-2">
             <Label>Data e hora da consulta</Label>
@@ -257,6 +263,7 @@ function RegistrarAnteriorDialog({
               type="datetime-local"
               value={data}
               onChange={(e) => setData(e.target.value)}
+              step={PASSO_HORA_EM_SEGUNDOS}
               onClick={(ev) => {
                 const el = ev.currentTarget as HTMLInputElement & { showPicker?: () => void }
                 try {
