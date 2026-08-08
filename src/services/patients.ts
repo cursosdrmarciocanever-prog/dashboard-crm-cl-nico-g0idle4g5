@@ -1,10 +1,13 @@
 import pb from '@/lib/pocketbase/client'
 import type { RecordModel } from 'pocketbase'
 import type { JourneyStage } from '@/lib/journey-stages'
+import { phoneKey } from '@/lib/phone'
 
 export interface Patient extends RecordModel {
   name: string
   phone: string
+  /** Telefone canônico (DDD+número). Mantido pelo servidor — não editar pelo app. */
+  phone_key?: string
   last_visit: string
   status: 'ativo' | 'concluido' | 'inativo'
   doctor_id: string
@@ -38,11 +41,18 @@ export const listPatients = (page: number, perPage: number, search?: string) => 
 
 export const getPatient = (id: string) => pb.collection<Patient>('patients').getOne(id)
 
+/**
+ * Procura paciente pelo telefone usando a chave canônica — (44) 98888-7777 e
+ * 5544988887777 encontram o mesmo cadastro. A consulta é feita no servidor, por
+ * índice: antes isso baixava a base inteira para comparar no navegador.
+ */
 export const findPatientByPhone = async (phone: string): Promise<Patient | null> => {
-  const normalized = phone.replace(/\D/g, '')
-  if (!normalized) return null
-  const all = await pb.collection<Patient>('patients').getFullList()
-  return all.find((p) => p.phone && p.phone.replace(/\D/g, '') === normalized) ?? null
+  const key = phoneKey(phone)
+  if (!key) return null
+  const found = await pb
+    .collection<Patient>('patients')
+    .getList(1, 1, { filter: pb.filter('phone_key = {:k}', { k: key }) })
+  return found.items[0] ?? null
 }
 
 export const createPatient = (data: Partial<Patient>) =>

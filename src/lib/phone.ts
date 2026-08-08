@@ -60,3 +60,17 @@ export function parseDateBR(raw: string): Date | null {
   }
   return null
 }
+
+/**
+ * Chave canônica de telefone, usada para impedir cadastro duplicado.
+ * Devolve o número NACIONAL normalizado (DDD + número, sem o 55) ou '' quando
+ * não dá para reconhecer um telefone.
+ *
+ * O mesmo cálculo existe no hook `patient_phone_key.js` — o JSVM do PocketBase
+ * não importa deste arquivo. Alterar aqui exige alterar lá.
+ */
+export function phoneKey(raw: string): string {
+  const n = normalizeBR(raw)
+  if (!n.valid) return ''
+  return n.phone.replace(/^55/, '')
+}

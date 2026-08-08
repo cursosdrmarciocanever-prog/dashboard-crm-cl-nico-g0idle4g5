@@ -48,19 +48,28 @@ routerAdd('POST', '/api/wa-inbound', (e) => {
   }
 
   const now = new Date().toISOString().replace('T', ' ')
-  const target = phoneDigits.replace(/^55/, '')
 
-  // Procura paciente existente por telefone (comparacao flexivel: ignora DDI 55
-  // e compara os ultimos digitos para tolerar formatos diferentes).
+  // Busca pelo phone_key (indexado). Antes isso varria os 1000 pacientes mais
+  // recentes e comparava na mao — com a base crescendo, quem ficasse fora dessa
+  // janela virava cadastro duplicado.
+  const chave = (function calcular(raw) {
+    let d = ('' + (raw || '')).replace(/\D/g, '')
+    if (!d) return ''
+    if ((d.length === 12 || d.length === 13) && d.indexOf('55') === 0) d = d.slice(2)
+    if (d.length === 11) return d
+    if (d.length === 10) {
+      const terceiro = d[2]
+      if ('6789'.indexOf(terceiro) >= 0) return d.slice(0, 2) + '9' + d.slice(2)
+      return d
+    }
+    return ''
+  })(phoneDigits)
+
   let existing = null
   try {
-    const candidates = $app.findRecordsByFilter('patients', "phone != ''", '-created', 1000, 0)
-    for (const p of candidates) {
-      const pd = ('' + p.getString('phone')).replace(/\D/g, '').replace(/^55/, '')
-      if (pd && (pd === target || pd.slice(-8) === target.slice(-8))) {
-        existing = p
-        break
-      }
+    if (chave) {
+      const achados = $app.findRecordsByFilter('patients', 'phone_key = {:k}', '', 1, 0, { k: chave })
+      if (achados.length) existing = achados[0]
     }
   } catch (err) {
     $app.logger().error('[wa_inbound] busca paciente falhou', 'error', err.message)

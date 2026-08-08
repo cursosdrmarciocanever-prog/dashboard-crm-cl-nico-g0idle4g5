@@ -48,8 +48,14 @@ export function NewPatientDialog() {
       setName('')
       setPhone('')
       setStatus('ativo')
-    } catch {
-      toast({ title: 'Erro', description: 'Ocorreu um erro ao cadastrar.', variant: 'destructive' })
+    } catch (err) {
+      // O servidor recusa telefone ja cadastrado e explica de quem e — mostrar
+      // "ocorreu um erro" faria a secretaria tentar de novo sem entender.
+      const msg =
+        (err as { response?: { message?: string } })?.response?.message ||
+        (err as Error)?.message ||
+        'Ocorreu um erro ao cadastrar.'
+      toast({ title: 'Não foi possível cadastrar', description: msg, variant: 'destructive' })
     } finally {
       setLoading(false)
     }
