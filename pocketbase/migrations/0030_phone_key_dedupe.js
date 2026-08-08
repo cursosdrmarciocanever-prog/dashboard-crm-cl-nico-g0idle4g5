@@ -67,7 +67,7 @@ migrate(
     }
 
     if (duplicados.length) {
-      $app
+      app
         .logger()
         .warn(
           '[0030] cadastros com telefone repetido — revise e uniforme manualmente',
