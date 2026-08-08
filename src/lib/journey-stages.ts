@@ -1,5 +1,6 @@
 export type JourneyStage =
   | 'novo_lead'
+  | 'paciente_interessado'
   | 'agendamento_confirmado'
   | 'pedido_exames_enviados'
   | 'exames_recebidos_parcialmente'
@@ -26,6 +27,12 @@ export const JOURNEY_STAGES: JourneyStageConfig[] = [
     label: 'Novo Lead',
     dotClass: 'bg-blue-500',
     headerClass: 'text-blue-700',
+  },
+  {
+    value: 'paciente_interessado',
+    label: 'Paciente Interessado',
+    dotClass: 'bg-sky-500',
+    headerClass: 'text-sky-700',
   },
   {
     value: 'agendamento_confirmado',

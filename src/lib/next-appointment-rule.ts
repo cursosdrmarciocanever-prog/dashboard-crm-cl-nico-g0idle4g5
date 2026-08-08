@@ -6,10 +6,11 @@ import type { JourneyStage } from './journey-stages'
  * ter SEMPRE uma próxima consulta agendada. Ninguém sai do processo sem retorno
  * marcado.
  *
- * `novo_lead` é a única etapa de fora: ali a pessoa ainda é um contato, não
- * começou o processo.
+ * `novo_lead` e `paciente_interessado` ficam de fora: ali a pessoa ainda é um
+ * contato, não começou o processo — cobrar "retorno" de quem nunca consultou
+ * encheria o quadro de alerta sem sentido.
  */
-export const STAGES_FORA_DA_REGRA: JourneyStage[] = ['novo_lead']
+export const STAGES_FORA_DA_REGRA: JourneyStage[] = ['novo_lead', 'paciente_interessado']
 
 export function exigeProximaConsulta(stage?: string): boolean {
   if (!stage) return false
