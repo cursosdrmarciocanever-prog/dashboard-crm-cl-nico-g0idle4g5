@@ -3,9 +3,14 @@
 #
 # Por que: a sessão do WhatsApp pode cair silenciosamente. Se isso acontecer, os
 # lembretes de consulta e de implante param de ser enviados sem ninguém notar.
-# Este script checa a conexão e avisa no TELEGRAM (canal independente do WhatsApp).
+# Este script checa a conexão e avisa por TELEGRAM e/ou E-MAIL — canais
+# independentes do WhatsApp. Avisar por WhatsApp seria inútil: o que caiu é
+# justamente ele.
 #
 # Uso manual:  /docker/apps/crm/deploy/whatsapp-watchdog.sh
+# TESTE:       /docker/apps/crm/deploy/whatsapp-watchdog.sh --teste
+#              manda um alerta de mentira agora, para provar que ele chega.
+#              Um monitoramento que ninguém testou não é monitoramento.
 # Automático:  cron a cada 15 min (ver deploy/README-backup.md)
 set -uo pipefail
 
@@ -37,19 +42,71 @@ if [ -z "$TG_TOKEN" ]; then
   done
 fi
 TG_CHAT="$(getenv_from "$CRM_ENV" TELEGRAM_CHAT_ID)"
-[ -z "$TG_CHAT" ] && TG_CHAT="5691849297"
+# NAO colocar chat_id padrao aqui. Ja houve um fixo no codigo: com token e sem
+# TELEGRAM_CHAT_ID, os alertas da clinica iriam para o Telegram de um estranho.
 
-notify() {
-  local msg="$1"
-  if [ -z "$TG_TOKEN" ] || [ -z "$TG_CHAT" ]; then
-    log "AVISO: Telegram nao configurado (sem token/chat). Mensagem nao enviada: $msg"
+# E-mail (opcional, segundo canal). Precisa de SMTP_* no .env.
+MAIL_TO="$(getenv_from "$CRM_ENV" ALERTA_EMAIL_TO)"
+SMTP_URL="$(getenv_from "$CRM_ENV" SMTP_URL)"
+SMTP_USER="$(getenv_from "$CRM_ENV" SMTP_USER)"
+SMTP_PASS="$(getenv_from "$CRM_ENV" SMTP_PASS)"
+
+# Envia por Telegram. Retorna 0 SO se a API confirmar. A versao anterior
+# descartava a resposta e o chamador dizia "Telegram enviado" de qualquer jeito
+# — foi assim que 31h de queda passaram sem aviso nenhum.
+send_telegram() {
+  local msg="$1" resp ok
+  [ -z "$TG_TOKEN" ] || [ -z "$TG_CHAT" ] && return 1
+  resp="$(curl -sS -m 20 -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
+    --data-urlencode "chat_id=${TG_CHAT}" \
+    --data-urlencode "text=${msg}" 2>&1)"
+  ok="$(printf '%s' "$resp" | grep -o '"ok":[a-z]*' | head -1 | cut -d: -f2)"
+  if [ "$ok" = "true" ]; then
     return 0
   fi
-  curl -sS -m 20 -o /dev/null \
-    -X POST "https://api.telegram.org/bot${TG_TOKEN}/sendMessage" \
-    --data-urlencode "chat_id=${TG_CHAT}" \
-    --data-urlencode "text=${msg}" || log "AVISO: falha ao enviar Telegram."
+  log "FALHA Telegram: $(printf '%s' "$resp" | head -c 200)"
+  return 1
 }
+
+send_email() {
+  local msg="$1"
+  [ -z "$MAIL_TO" ] || [ -z "$SMTP_URL" ] || [ -z "$SMTP_USER" ] && return 1
+  printf 'From: %s\nTo: %s\nSubject: [CRM] WhatsApp da clinica desconectado\n\n%s\n' \
+    "$SMTP_USER" "$MAIL_TO" "$msg" \
+    | curl -sS -m 30 --url "$SMTP_URL" --ssl-reqd \
+        --mail-from "$SMTP_USER" --mail-rcpt "$MAIL_TO" \
+        --user "${SMTP_USER}:${SMTP_PASS}" --upload-file - >/dev/null 2>&1
+}
+
+# Tenta todos os canais configurados. Só considera avisado se ALGUM confirmou.
+notify() {
+  local msg="$1" entregue=0
+  send_telegram "$msg" && entregue=1
+  send_email "$msg" && entregue=1
+
+  if [ "$entregue" = "1" ]; then
+    return 0
+  fi
+  if [ -z "$TG_TOKEN" ] && [ -z "$MAIL_TO" ]; then
+    log "SEM CANAL DE ALERTA: nenhum aviso foi enviado a ninguem. Configure TELEGRAM_BOT_TOKEN + TELEGRAM_CHAT_ID (ou ALERTA_EMAIL_TO + SMTP_*) no .env."
+  else
+    log "ALERTA NAO ENTREGUE: todos os canais configurados falharam."
+  fi
+  return 1
+}
+
+# --teste: prova que o alerta chega, sem esperar uma queda real
+if [ "${1:-}" = "--teste" ]; then
+  echo "Enviando alerta de teste..."
+  if notify "TESTE do CRM da Clinica Canever - $(date '+%d/%m %H:%M'). Se voce recebeu isto, o alerta de queda do WhatsApp esta funcionando."; then
+    echo "OK: alerta entregue. Confira se a mensagem chegou."
+    log "TESTE: alerta enviado com sucesso."
+    exit 0
+  fi
+  echo "FALHOU: nenhum canal entregou. Veja o motivo em $LOG"
+  tail -3 "$LOG"
+  exit 1
+fi
 
 if [ -z "$EVO_URL" ] || [ -z "$EVO_KEY" ] || [ -z "$EVO_INSTANCE" ]; then
   log "ERRO: EVOLUTION_* nao encontrado em $CRM_ENV."
@@ -91,13 +148,16 @@ else
   # caído: avisa se mudou de estado ou se já passou o intervalo de reaviso
   ELAPSED=$((NOW - PREV_ALERT))
   if [ "$PREV_STATE" != "$STATE" ] || [ "$ELAPSED" -ge "$REALERT_SECONDS" ]; then
-    notify "🚨 WhatsApp da clínica DESCONECTADO (estado: ${STATE}).
+    if notify "🚨 WhatsApp da clínica DESCONECTADO (estado: ${STATE}).
 
 Os lembretes automáticos (consultas e implantes) NÃO estão sendo enviados.
 
-Para religar: abra https://evo.clinicacanever.com.br/manager e leia o QR code novamente com o celular da clínica."
+Para religar: abra https://evo.clinicacanever.com.br/manager e leia o QR code novamente com o celular da clínica."; then
+      log "ALERTA: estado '$STATE'. Aviso entregue."
+    else
+      log "ALERTA: estado '$STATE'. AVISO NAO ENTREGUE — ninguem foi notificado."
+    fi
     LAST_ALERT="$NOW"
-    log "ALERTA: estado '$STATE'. Telegram enviado."
   else
     log "AINDA CAIDO: estado '$STATE' (reaviso em $(((REALERT_SECONDS - ELAPSED) / 60)) min)."
   fi
