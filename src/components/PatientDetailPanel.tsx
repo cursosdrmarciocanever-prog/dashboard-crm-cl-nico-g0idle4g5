@@ -31,6 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Patient, updatePatient } from '@/services/patients'
+import { PatientAppointments } from '@/components/PatientAppointments'
 import { JOURNEY_STAGES, type JourneyStage } from '@/lib/journey-stages'
 import { FLAG_TO_STAGE, type ChecklistFlag } from '@/lib/journey-sync'
 import { cn } from '@/lib/utils'
@@ -148,6 +149,10 @@ export function PatientDetailPanel({
                   </Badge>
                 </div>
               </div>
+
+              {/* Consultas antes da origem do trafego: e a pergunta que se faz
+                  olhando um lead — quando ele veio e quando volta. */}
+              <PatientAppointments patientId={local.id} onChanged={onUpdated} />
 
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
