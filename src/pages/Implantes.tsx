@@ -43,14 +43,26 @@ import {
 import { format, differenceInCalendarDays } from 'date-fns'
 import { useToast } from '@/hooks/use-toast'
 import { useRealtime } from '@/hooks/use-realtime'
-import { Syringe, Plus, Check, Loader2, Save, X, CalendarClock } from 'lucide-react'
+import {
+  Syringe,
+  Plus,
+  Check,
+  Loader2,
+  Save,
+  X,
+  CalendarClock,
+  MessageCircle,
+} from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { ImportImplantsDialog } from '@/components/ImportImplantsDialog'
+import { EnviarLembreteImplanteDialog } from '@/components/EnviarLembreteImplanteDialog'
 
 export default function Implantes() {
   const [rows, setRows] = useState<Patient[]>([])
   const [reminders, setReminders] = useState<ImplantReminder[]>([])
   const [loading, setLoading] = useState(true)
+  // Paciente cujo lembrete está sendo escrito para envio manual (null = fechado).
+  const [lembretePara, setLembretePara] = useState<Patient | null>(null)
   const { toast } = useToast()
 
   const load = useCallback(async () => {
@@ -184,6 +196,15 @@ export default function Implantes() {
                       )}
                     </TableCell>
                     <TableCell className="text-right whitespace-nowrap">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="gap-1.5 text-emerald-600"
+                        onClick={() => setLembretePara(p)}
+                        title="Enviar agora o lembrete de vencimento no WhatsApp"
+                      >
+                        <MessageCircle className="w-4 h-4" /> Lembrete
+                      </Button>
                       {!returned && (
                         <Button
                           variant="ghost"
@@ -229,6 +250,15 @@ export default function Implantes() {
           />
         ))}
       </section>
+
+      <EnviarLembreteImplanteDialog
+        patient={lembretePara}
+        reminders={reminders}
+        open={!!lembretePara}
+        onOpenChange={(v) => {
+          if (!v) setLembretePara(null)
+        }}
+      />
     </div>
   )
 }
