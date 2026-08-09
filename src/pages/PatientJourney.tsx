@@ -58,26 +58,27 @@ export default function PatientJourney() {
 
   const selectedPatient = patients.find((p) => p.id === selectedId) ?? null
 
-  // Para cada paciente: a PROXIMA consulta agendada; se nao houver, a ULTIMA que
-  // ja aconteceu. Canceladas nao contam. Uma consulta so para todos os cartoes.
+  // Para cada paciente: a PROXIMA consulta agendada E a ULTIMA que ja aconteceu.
+  // As duas juntas, porque o cartao mostra as duas. Canceladas nao contam.
   const appointmentMap = useMemo(() => {
-    const now = new Date()
+    const agora = new Date()
     const map = new Map<string, CardAppointment>()
-    const sorted = appointments
+    const ordenadas = appointments
       .filter((a) => a.status !== 'cancelled' && a.appointment_date)
       .sort(
         (a, b) => new Date(a.appointment_date).getTime() - new Date(b.appointment_date).getTime(),
       )
-    for (const a of sorted) {
+    for (const a of ordenadas) {
       const date = new Date(a.appointment_date)
-      const current = map.get(a.patient_id)
-      if (date >= now) {
-        // primeira futura ganha; nunca sobrescreve uma futura ja registrada
-        if (!current || current.kind === 'last') map.set(a.patient_id, { kind: 'next', date })
-      } else if (!current || current.kind === 'last') {
-        // passadas vem em ordem crescente: a ultima a entrar e a mais recente
-        map.set(a.patient_id, { kind: 'last', date })
+      const atual = map.get(a.patient_id) ?? {}
+      if (date >= agora) {
+        // Em ordem crescente, a primeira futura e a proxima: nao sobrescreve.
+        if (!atual.proxima) atual.proxima = date
+      } else {
+        // Tambem em ordem crescente: a ultima passada a entrar e a mais recente.
+        atual.ultima = date
       }
+      map.set(a.patient_id, atual)
     }
     return map
   }, [appointments])
@@ -89,8 +90,8 @@ export default function PatientJourney() {
       const consulta = appointmentMap.get(p.id)
       const pendencia = calcularPendencia(
         p.journey_stage,
-        consulta?.kind === 'next' ? consulta.date : undefined,
-        consulta?.kind === 'last' ? consulta.date : undefined,
+        consulta?.proxima,
+        consulta?.ultima,
         p.created,
       )
       if (pendencia) map.set(p.id, pendencia)
@@ -131,7 +132,7 @@ export default function PatientJourney() {
     await updatePatient(patient.id, { journey_stage: stage, ...flags })
     await load()
 
-    const temFutura = appointmentMap.get(patient.id)?.kind === 'next'
+    const temFutura = !!appointmentMap.get(patient.id)?.proxima
     if (exigeProximaConsulta(stage) && !temFutura) {
       const etapa = JOURNEY_STAGES.find((s) => s.value === stage)?.label ?? ''
       setCobranca({

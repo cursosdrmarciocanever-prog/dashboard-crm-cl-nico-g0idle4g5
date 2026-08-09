@@ -12,6 +12,7 @@ import {
   Loader2,
   MessageCircle,
   CalendarX,
+  CalendarCheck,
 } from 'lucide-react'
 import type { Patient } from '@/services/patients'
 import type { JourneyStage } from '@/lib/journey-stages'
@@ -24,10 +25,14 @@ import {
 } from '@/lib/post-consultation-checklist'
 import { cn } from '@/lib/utils'
 
-/** Proxima consulta agendada ou, na falta dela, a ultima que ja aconteceu. */
+/**
+ * As duas datas que se procura olhando um lead: quando ele volta e quando
+ * esteve aqui pela ultima vez. Vem do mesmo calendario da aba Agendamentos.
+ * Qualquer uma pode faltar — lead novo nao tem nenhuma.
+ */
 export interface CardAppointment {
-  kind: 'next' | 'last'
-  date: Date
+  proxima?: Date
+  ultima?: Date
 }
 
 interface PatientJourneyCardProps {
@@ -135,24 +140,21 @@ export function PatientJourneyCard({
               : 'sem registro'}
           </p>
 
-          {/* Consulta: proxima em destaque; se nao houver, a ultima realizada */}
-          {appointment ? (
-            <p
-              className={cn(
-                'flex items-center gap-1 text-xs mt-0.5 font-medium',
-                appointment.kind === 'next'
-                  ? 'text-blue-600 dark:text-blue-400'
-                  : 'text-muted-foreground',
-              )}
-            >
+          {/* As duas datas, uma em cada linha. A proxima em azul porque e a que
+              exige acao; a ultima em cinza, como referencia. */}
+          {appointment?.proxima && (
+            <p className="flex items-center gap-1 text-xs mt-0.5 font-medium text-blue-600 dark:text-blue-400">
               <CalendarIcon className="w-3 h-3 flex-shrink-0" />
-              {appointment.kind === 'next' ? (
-                <>Próxima: {format(appointment.date, "dd/MM 'às' HH:mm")}</>
-              ) : (
-                <>Última: {format(appointment.date, 'dd/MM/yyyy')}</>
-              )}
+              Próxima: {format(appointment.proxima, "dd/MM 'às' HH:mm")}
             </p>
-          ) : (
+          )}
+          {appointment?.ultima && (
+            <p className="flex items-center gap-1 text-xs mt-0.5 text-muted-foreground">
+              <CalendarCheck className="w-3 h-3 flex-shrink-0" />
+              Última: {format(appointment.ultima, 'dd/MM/yyyy')}
+            </p>
+          )}
+          {!appointment?.proxima && !appointment?.ultima && (
             <p className="flex items-center gap-1 text-xs text-muted-foreground/60 mt-0.5">
               <CalendarIcon className="w-3 h-3 flex-shrink-0" />
               Sem consulta
