@@ -1,5 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { getAppointments, updateAppointment, Appointment } from '@/services/appointments'
+import {
+  getAppointments,
+  updateAppointment,
+  deleteAppointment,
+  Appointment,
+} from '@/services/appointments'
 import {
   Table,
   TableBody,
@@ -44,6 +49,7 @@ import {
   CalendarDays,
   Check,
   X,
+  Trash2,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { useRealtime } from '@/hooks/use-realtime'
@@ -100,6 +106,24 @@ export default function Appointments() {
       })
     } catch {
       toast({ title: 'Erro', description: 'Não foi possível atualizar.', variant: 'destructive' })
+    }
+  }
+
+  const excluir = async (id: string) => {
+    try {
+      await deleteAppointment(id)
+      await load()
+      setSelected(null)
+      toast({
+        title: 'Consulta excluída',
+        description: 'O registro saiu da agenda e os lembretes pendentes foram removidos.',
+      })
+    } catch {
+      toast({
+        title: 'Erro',
+        description: 'Não foi possível excluir a consulta.',
+        variant: 'destructive',
+      })
     }
   }
 
@@ -193,6 +217,7 @@ export default function Appointments() {
         onClose={() => setSelected(null)}
         onCancel={(id) => setStatus(id, 'cancelled')}
         onComplete={(id) => setStatus(id, 'completed')}
+        onDelete={excluir}
       />
     </div>
   )
@@ -421,11 +446,13 @@ function AppointmentDialog({
   onClose,
   onCancel,
   onComplete,
+  onDelete,
 }: {
   appointment: Appointment | null
   onClose: () => void
   onCancel: (id: string) => void
   onComplete: (id: string) => void
+  onDelete: (id: string) => void
 }) {
   const a = appointment
   const badge = a ? statusBadge(a.status) : null
@@ -449,38 +476,75 @@ function AppointmentDialog({
               {badge && <Badge variant={badge.variant}>{badge.label}</Badge>}
             </div>
 
-            {a.status === 'scheduled' && (
-              <div className="flex justify-end gap-2 pt-2">
-                <Button variant="outline" className="gap-1.5" onClick={() => onComplete(a.id)}>
-                  <Check className="w-4 h-4" /> Concluir
-                </Button>
-                <AlertDialog>
-                  <AlertDialogTrigger asChild>
-                    <Button variant="destructive" className="gap-1.5">
-                      <X className="w-4 h-4" /> Cancelar consulta
-                    </Button>
-                  </AlertDialogTrigger>
-                  <AlertDialogContent>
-                    <AlertDialogHeader>
-                      <AlertDialogTitle>Cancelar esta consulta?</AlertDialogTitle>
-                      <AlertDialogDescription>
-                        A consulta será marcada como cancelada e os lembretes de WhatsApp ainda não
-                        enviados serão removidos. Esta ação não pode ser desfeita.
-                      </AlertDialogDescription>
-                    </AlertDialogHeader>
-                    <AlertDialogFooter>
-                      <AlertDialogCancel>Voltar</AlertDialogCancel>
-                      <AlertDialogAction
-                        onClick={() => onCancel(a.id)}
-                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                      >
-                        Sim, cancelar
-                      </AlertDialogAction>
-                    </AlertDialogFooter>
-                  </AlertDialogContent>
-                </AlertDialog>
-              </div>
-            )}
+            <div className="flex flex-wrap justify-end gap-2 pt-2">
+              {a.status === 'scheduled' && (
+                <>
+                  <Button variant="outline" className="gap-1.5" onClick={() => onComplete(a.id)}>
+                    <Check className="w-4 h-4" /> Concluir
+                  </Button>
+                  <AlertDialog>
+                    <AlertDialogTrigger asChild>
+                      <Button variant="outline" className="gap-1.5">
+                        <X className="w-4 h-4" /> Cancelar consulta
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent>
+                      <AlertDialogHeader>
+                        <AlertDialogTitle>Cancelar esta consulta?</AlertDialogTitle>
+                        <AlertDialogDescription>
+                          A consulta será marcada como cancelada e os lembretes de WhatsApp ainda
+                          não enviados serão removidos. Ela continua aparecendo no histórico da
+                          paciente.
+                        </AlertDialogDescription>
+                      </AlertDialogHeader>
+                      <AlertDialogFooter>
+                        <AlertDialogCancel>Voltar</AlertDialogCancel>
+                        <AlertDialogAction
+                          onClick={() => onCancel(a.id)}
+                          className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        >
+                          Sim, cancelar
+                        </AlertDialogAction>
+                      </AlertDialogFooter>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                </>
+              )}
+
+              {/* Excluir vale para qualquer status: o uso é limpar lançamento
+                  errado ou duplicado, e esses aparecem tambem como concluída
+                  ou cancelada. */}
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="gap-1.5">
+                    <Trash2 className="w-4 h-4" /> Excluir
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Excluir esta consulta de vez?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Diferente de cancelar: o registro é apagado. A consulta some da agenda e do
+                      histórico da paciente, e os lembretes de WhatsApp ainda não enviados vão
+                      junto. Não dá para desfazer.
+                      <br />
+                      <br />
+                      Para uma consulta que a paciente desmarcou, prefira <b>Cancelar</b> — assim
+                      fica o registro de que ela existiu.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Voltar</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => onDelete(a.id)}
+                      className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                    >
+                      Sim, excluir
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         )}
       </DialogContent>
