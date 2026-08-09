@@ -56,6 +56,13 @@ import {
 import { cn } from '@/lib/utils'
 import { ImportImplantsDialog } from '@/components/ImportImplantsDialog'
 import { EnviarLembreteImplanteDialog } from '@/components/EnviarLembreteImplanteDialog'
+import { SeletorDePrazo } from '@/components/SeletorDePrazo'
+
+const ANCORA_IMPLANTE = {
+  zero: 'no dia do vencimento',
+  antes: 'antes do vencimento',
+  depois: 'depois do vencimento',
+}
 
 export default function Implantes() {
   const [rows, setRows] = useState<Patient[]>([])
@@ -381,6 +388,7 @@ function ReminderCard({
       await updateImplantReminder(reminder.id, {
         message_text: reminder.message_text,
         enabled: reminder.enabled,
+        offset_days: Number(reminder.offset_days) || 0,
       })
       toast({ title: 'Salvo', description: `"${reminder.label}" atualizado.` })
     } catch {
@@ -417,7 +425,21 @@ function ReminderCard({
           value={reminder.message_text}
           onChange={(e) => onPatch(reminder.id, { message_text: e.target.value })}
         />
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          {/* O de retorno sai quando a paciente é marcada como retornada — não
+              tem prazo para ajustar. */}
+          {reminder.kind === 'schedule' ? (
+            <SeletorDePrazo
+              minutos={(Number(reminder.offset_days) || 0) * 1440}
+              onChange={(min) => onPatch(reminder.id, { offset_days: min / 1440 })}
+              unidades={['dias']}
+              ancora={ANCORA_IMPLANTE}
+            />
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              Enviado na hora em que a paciente é marcada como retornada.
+            </p>
+          )}
           <Button onClick={handleSave} disabled={saving} className="gap-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Salvar

@@ -11,13 +11,26 @@ import {
 } from '@/services/appointment-reminders'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Textarea } from '@/components/ui/textarea'
-import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { SeletorDePrazo } from '@/components/SeletorDePrazo'
+import { descrever } from '@/lib/offset'
 import { useToast } from '@/hooks/use-toast'
 import { Loader2, Save, Bot, CalendarClock } from 'lucide-react'
+
+const ANCORA_CONSULTA = {
+  zero: 'no horário da consulta',
+  antes: 'antes da consulta',
+  depois: 'depois da consulta',
+}
+
+const ANCORA_ESTAGIO = {
+  zero: 'assim que o paciente entra no estágio',
+  antes: 'antes de entrar no estágio',
+  depois: 'depois de entrar no estágio',
+}
 
 const STAGE_LABELS: Record<string, string> = {
   novo_lead: 'Novo lead (boas-vindas)',
@@ -132,13 +145,6 @@ export default function Automacoes() {
   )
 }
 
-function offsetLabel(hours: number) {
-  if (hours === 0) return 'no horário da consulta'
-  const abs = Math.abs(hours)
-  const unit = abs % 24 === 0 ? `${abs / 24} dia(s)` : `${abs} hora(s)`
-  return hours < 0 ? `${unit} antes` : `${unit} depois`
-}
-
 function ReminderCard({
   reminder,
   onPatch,
@@ -156,6 +162,7 @@ function ReminderCard({
       await updateAppointmentReminder(reminder.id, {
         message_text: reminder.message_text,
         enabled: reminder.enabled,
+        offset_hours: Number(reminder.offset_hours) || 0,
       })
       toast({ title: 'Salvo', description: `Lembrete "${reminder.label}" atualizado.` })
     } catch {
@@ -171,7 +178,10 @@ function ReminderCard({
         <div className="flex items-center gap-2">
           <CardTitle className="text-lg">{reminder.label}</CardTitle>
           <Badge variant="secondary" className="font-normal">
-            {offsetLabel(Number(reminder.offset_hours) || 0)}
+            {descrever((Number(reminder.offset_hours) || 0) * 60, ANCORA_CONSULTA, [
+              'dias',
+              'horas',
+            ])}
           </Badge>
         </div>
         <div className="flex items-center gap-2">
@@ -193,7 +203,13 @@ function ReminderCard({
             onChange={(e) => onPatch(reminder.id, { message_text: e.target.value })}
           />
         </div>
-        <div className="flex justify-end">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <SeletorDePrazo
+            minutos={(Number(reminder.offset_hours) || 0) * 60}
+            onChange={(min) => onPatch(reminder.id, { offset_hours: min / 60 })}
+            unidades={['dias', 'horas']}
+            ancora={ANCORA_CONSULTA}
+          />
           <Button onClick={handleSave} disabled={saving} className="gap-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Salvar
@@ -254,16 +270,15 @@ function TemplateCard({
             onChange={(e) => onPatch(template.id, { message_text: e.target.value })}
           />
         </div>
-        <div className="flex items-end justify-between gap-4">
-          <div className="space-y-2 w-40">
-            <Label>Atraso (minutos)</Label>
-            <Input
-              type="number"
-              min={0}
-              value={template.delay_minutes ?? 0}
-              onChange={(e) => onPatch(template.id, { delay_minutes: Number(e.target.value) })}
-            />
-          </div>
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <SeletorDePrazo
+            minutos={Number(template.delay_minutes) || 0}
+            onChange={(min) => onPatch(template.id, { delay_minutes: min })}
+            unidades={['dias', 'horas', 'minutos']}
+            sentidos={['depois']}
+            rotulo="Esperar antes de enviar"
+            ancora={ANCORA_ESTAGIO}
+          />
           <Button onClick={handleSave} disabled={saving} className="gap-2">
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             Salvar
