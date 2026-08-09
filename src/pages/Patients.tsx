@@ -108,7 +108,43 @@ export default function Patients() {
             {totalItems} paciente{totalItems === 1 ? '' : 's'}
           </span>
         </div>
-        <div className="overflow-x-auto">
+        {/* Celular: cada paciente vira um cartao. Seis colunas nao cabem em
+            390px sem virar rolagem lateral. */}
+        <div className="md:hidden divide-y">
+          {loading && <Loader2 className="w-5 h-5 animate-spin mx-auto my-8" />}
+          {!loading && patients.length === 0 && (
+            <p className="text-center py-8 text-muted-foreground">Nenhum paciente localizado</p>
+          )}
+          {!loading &&
+            patients.map((p) => (
+              <button
+                key={p.id}
+                onClick={() => openPatient(p)}
+                className="w-full text-left p-4 active:bg-muted/50 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="font-medium truncate">{p.name}</span>
+                  <Badge
+                    variant="outline"
+                    className={cn('font-medium shrink-0', {
+                      'bg-green-100 text-green-800 border-green-200': p.status === 'ativo',
+                      'bg-blue-100 text-blue-800 border-blue-200': p.status === 'concluido',
+                      'bg-gray-100 text-gray-600 border-gray-200': p.status === 'inativo',
+                    })}
+                  >
+                    {p.status.charAt(0).toUpperCase() + p.status.slice(1)}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground mt-0.5">{p.phone || 'sem telefone'}</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  {stageLabel(p.journey_stage)}
+                  {p.traffic_platform ? ` · ${originLabel(p.traffic_platform)}` : ''}
+                </p>
+              </button>
+            ))}
+        </div>
+
+        <div className="hidden md:block overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>

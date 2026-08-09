@@ -40,7 +40,40 @@ export default function ScheduledMessages() {
         <NewScheduledMessageDialog />
       </div>
 
-      <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+      {/* Celular: cartoes. A mensagem inteira aparece — no telefone e ela que
+          se quer ler, nao a coluna cortada. */}
+      <div className="md:hidden space-y-2">
+        {messages.length === 0 && (
+          <div className="text-center py-8 text-muted-foreground">
+            <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
+            Nenhuma mensagem agendada
+          </div>
+        )}
+        {messages.map((m) => {
+          const status = statusConfig[m.status] || statusConfig.pending
+          return (
+            <div key={m.id} className="bg-card border rounded-xl shadow-sm p-3">
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-medium text-primary truncate">
+                  {m.expand?.patient_id?.name || 'Desconhecido'}
+                </span>
+                <Badge variant={status.variant} className="font-medium shrink-0">
+                  {status.label}
+                </Badge>
+              </div>
+              <p className="flex items-center gap-1.5 text-sm mt-1">
+                <Clock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                {format(new Date(m.scheduled_at), "dd/MM/yyyy 'às' HH:mm")}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1 whitespace-pre-wrap">
+                {m.message_text}
+              </p>
+            </div>
+          )
+        })}
+      </div>
+
+      <div className="hidden md:block bg-card border rounded-xl shadow-sm overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/10">
             <TableRow>

@@ -129,7 +129,84 @@ export default function Implantes() {
         </div>
       </div>
 
-      <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+      {/* Celular: cartoes no lugar da tabela, com os mesmos botoes. */}
+      <div className="md:hidden space-y-2">
+        {loading && <Loader2 className="w-5 h-5 animate-spin mx-auto my-8 text-primary" />}
+        {!loading && rows.length === 0 && (
+          <p className="text-center py-8 text-muted-foreground">
+            Nenhuma paciente em acompanhamento. Use “Adicionar paciente”.
+          </p>
+        )}
+        {!loading &&
+          rows.map((p) => {
+            const exp = p.implant_expires_at ? new Date(p.implant_expires_at) : null
+            const days = exp ? differenceInCalendarDays(exp, new Date()) : null
+            const returned = !!p.implant_returned_at
+            return (
+              <div key={p.id} className="bg-card border rounded-xl shadow-sm p-3">
+                <div className="flex items-start justify-between gap-2">
+                  <Link to={`/pacientes/${p.id}`} className="font-medium hover:underline truncate">
+                    {p.name}
+                  </Link>
+                  {returned ? (
+                    <Badge variant="secondary" className="shrink-0">Retornou</Badge>
+                  ) : days === null ? (
+                    <Badge variant="outline" className="shrink-0">—</Badge>
+                  ) : days < 0 ? (
+                    <Badge variant="destructive" className="shrink-0">
+                      Vencido há {Math.abs(days)}d
+                    </Badge>
+                  ) : days === 0 ? (
+                    <Badge variant="destructive" className="shrink-0">Vence hoje</Badge>
+                  ) : (
+                    <Badge
+                      variant="outline"
+                      className={cn('shrink-0', days <= 30 && 'border-amber-400 text-amber-700')}
+                    >
+                      Faltam {days}d
+                    </Badge>
+                  )}
+                </div>
+                <p className="text-xs text-muted-foreground mt-0.5">{p.phone}</p>
+                <p className="flex items-center gap-1.5 text-sm mt-1">
+                  <CalendarClock className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                  Vence {exp ? format(exp, 'dd/MM/yyyy') : '-'}
+                </p>
+                <div className="flex flex-wrap gap-2 mt-2 pt-2 border-t">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="gap-1.5 text-emerald-600 touch-target"
+                    onClick={() => setLembretePara(p)}
+                  >
+                    <MessageCircle className="w-4 h-4" /> Lembrete
+                  </Button>
+                  {!returned && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="gap-1.5 text-primary touch-target"
+                      onClick={() => handleReturn(p)}
+                    >
+                      <Check className="w-4 h-4" /> Marcar retorno
+                    </Button>
+                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground touch-target"
+                    onClick={() => handleRemove(p)}
+                    title="Remover do acompanhamento"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            )
+          })}
+      </div>
+
+      <div className="hidden md:block bg-card border rounded-xl shadow-sm overflow-hidden">
         <Table>
           <TableHeader className="bg-muted/10">
             <TableRow>

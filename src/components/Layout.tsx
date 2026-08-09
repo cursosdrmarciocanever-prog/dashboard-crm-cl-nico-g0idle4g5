@@ -22,7 +22,9 @@ export default function Layout() {
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <Header />
-          <main className="flex-1 p-4 md:p-8 animate-fade-in">
+          {/* pb-safe: instalado no iPhone, a barra de gestos comeria o ultimo
+              botao da pagina. px-safe cobre o entalhe na horizontal. */}
+          <main className="flex-1 p-4 md:p-8 pb-safe px-safe animate-fade-in">
             <Outlet />
           </main>
         </div>

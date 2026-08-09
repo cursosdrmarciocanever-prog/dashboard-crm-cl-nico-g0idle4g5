@@ -14,6 +14,7 @@ import {
   AlertCircle,
   Clock,
   User,
+  ChevronLeft,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -101,9 +102,20 @@ export default function Conversas() {
     <div className="animate-fade-in">
       <h1 className="text-3xl font-bold tracking-tight text-foreground mb-6">Conversas</h1>
 
+      {/*
+        No computador, lista e conversa lado a lado. No celular nao cabem as
+        duas: empilhadas, sobrava uma tira de lista e uma tira de conversa, e
+        nenhuma das duas dava para usar. Entao no celular aparece UMA de cada
+        vez — a lista, ou a conversa aberta com um botao de voltar.
+      */}
       <div className="grid grid-cols-1 md:grid-cols-[320px_1fr] gap-4 h-[calc(100vh-220px)] min-h-[480px]">
         {/* Lista de conversas */}
-        <div className="border rounded-xl bg-card overflow-y-auto">
+        <div
+          className={cn(
+            'border rounded-xl bg-card overflow-y-auto',
+            selected && 'hidden md:block',
+          )}
+        >
           {conversations.length === 0 ? (
             <div className="text-center text-muted-foreground py-12 px-4">
               <MessageSquare className="w-8 h-8 mx-auto mb-2 opacity-50" />
@@ -136,7 +148,12 @@ export default function Conversas() {
         </div>
 
         {/* Conversa selecionada */}
-        <div className="border rounded-xl bg-card flex flex-col overflow-hidden">
+        <div
+          className={cn(
+            'border rounded-xl bg-card flex flex-col overflow-hidden',
+            !selected && 'hidden md:flex',
+          )}
+        >
           {!selected ? (
             <div className="flex-1 flex items-center justify-center text-muted-foreground">
               Selecione uma conversa
@@ -144,7 +161,16 @@ export default function Conversas() {
           ) : (
             <>
               <div className="px-4 py-3 border-b bg-muted/10 flex items-center justify-between gap-3">
-                <div className="min-w-0">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="md:hidden shrink-0 -ml-2"
+                  onClick={() => setSelected(null)}
+                  aria-label="Voltar para a lista de conversas"
+                >
+                  <ChevronLeft className="w-5 h-5" />
+                </Button>
+                <div className="min-w-0 flex-1">
                   <div className="font-semibold text-foreground truncate">{selected.name}</div>
                   <div className="text-xs text-muted-foreground">{selected.phone}</div>
                 </div>

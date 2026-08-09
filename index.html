@@ -3,14 +3,24 @@
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- viewport-fit=cover: sem isso, a tela cheia do iPhone deixa faixas
+         brancas em cima e embaixo. Quem cuida do entalhe e da barra inferior
+         e o padding com env(safe-area-inset-*) no main.css. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>CRM — Clínica Canever</title>
     <meta name="description" content="CRM de jornada de pacientes da Clínica Canever." />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="icon" href="/favicon.ico" sizes="any" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#1d3fae" />
     <meta name="robots" content="noindex, nofollow" />
+
+    <!-- "Adicionar a Tela de Inicio" no iPhone: abre sem a barra do Safari. -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="CRM Canever" />
   </head>
 
   <body>

@@ -155,4 +155,34 @@
   .animate-fade-in {
     animation: fade-in 0.5s ease-out;
   }
+
+  /* ---------------------------------------------------------------- iPhone
+     Instalado na tela de inicio, o app ocupa a tela toda: o topo passa por
+     baixo do entalhe e o rodape por baixo da barra de gestos. Estas classes
+     devolvem o espaco. Em navegador comum env(...) vale 0, entao nao muda nada. */
+  .pt-safe {
+    padding-top: env(safe-area-inset-top);
+  }
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .px-safe {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+
+  /* Alvo minimo de toque. O dedo erra o que tem menos de ~44px. */
+  .touch-target {
+    min-height: 44px;
+  }
+}
+
+/* Rolagem com inercia dentro das areas que rolam na horizontal (quadro da
+   jornada, tabelas largas) — sem isso o gesto trava seco no iOS. */
+@media (max-width: 767px) {
+  .overflow-x-auto,
+  .overflow-auto,
+  .overflow-y-auto {
+    -webkit-overflow-scrolling: touch;
+  }
 }

@@ -22,6 +22,7 @@ export function Header() {
   const { theme, toggle } = useTheme()
   const navigate = useNavigate()
   const [query, setQuery] = useState('')
+  const [buscaAberta, setBuscaAberta] = useState(false)
 
   // A secretaria tambem usa o CRM: nao rotular todo mundo de endocrinologista.
   const displayName = user?.name || (isAdmin ? 'Dr. Márcio Canever' : 'Secretaria')
@@ -35,13 +36,15 @@ export function Header() {
   const handleSearch = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && query.trim()) {
       navigate(`/pacientes?q=${encodeURIComponent(query.trim())}`)
+      setBuscaAberta(false)
     }
   }
 
   return (
-    <header className="sticky top-0 z-10 flex items-center justify-between px-4 py-3 bg-card border-b">
+    <header className="sticky top-0 z-10 bg-card border-b pt-safe px-safe">
+      <div className="flex items-center justify-between px-4 py-3">
       <div className="flex items-center gap-2 flex-1">
-        <SidebarTrigger className="md:hidden" />
+        <SidebarTrigger className="md:hidden touch-target" />
         <div className="relative max-w-md w-full hidden md:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
@@ -53,7 +56,18 @@ export function Header() {
           />
         </div>
       </div>
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1 sm:gap-4">
+        {/* No celular a busca nao cabe na barra: abre numa linha propria. */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="md:hidden touch-target"
+          onClick={() => setBuscaAberta((v) => !v)}
+          aria-label="Buscar paciente"
+          aria-expanded={buscaAberta}
+        >
+          <Search className="w-5 h-5 text-muted-foreground" />
+        </Button>
         <Button
           variant="ghost"
           size="icon"
@@ -107,6 +121,26 @@ export function Header() {
           </DropdownMenuContent>
         </DropdownMenu>
       </div>
+      </div>
+
+      {buscaAberta && (
+        <div className="px-4 pb-3 md:hidden">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              autoFocus
+              placeholder="Nome ou telefone — toque em buscar"
+              className="pl-9 bg-background border-border"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={handleSearch}
+              // O teclado do iPhone mostra "Buscar" no lugar de "Enter".
+              enterKeyHint="search"
+              type="search"
+            />
+          </div>
+        </div>
+      )}
     </header>
   )
 }

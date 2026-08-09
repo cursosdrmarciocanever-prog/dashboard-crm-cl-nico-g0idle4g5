@@ -15,6 +15,13 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import {
+  AVISO_HORA_CHEIA,
+  ehHoraCheia,
+  PASSO_HORA_EM_SEGUNDOS,
+} from '@/lib/appointment-time'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   AlertDialog,
@@ -106,6 +113,25 @@ export default function Appointments() {
       })
     } catch {
       toast({ title: 'Erro', description: 'Não foi possível atualizar.', variant: 'destructive' })
+    }
+  }
+
+  /**
+   * Remarca pelo diálogo. No computador dá para arrastar no calendário, mas
+   * arrastar não existe em tela de toque — sem isto, remarcar pelo iPhone era
+   * impossível: só restava cancelar e criar outra.
+   */
+  const remarcar = async (id: string, quando: Date) => {
+    try {
+      await updateAppointment(id, { appointment_date: paraPocketBase(quando) })
+      await load()
+      setSelected(null)
+      toast({
+        title: 'Consulta remarcada',
+        description: `Agora em ${format(quando, "dd/MM/yyyy 'às' HH:mm")}.`,
+      })
+    } catch {
+      toast({ title: 'Erro', description: 'Não foi possível remarcar.', variant: 'destructive' })
     }
   }
 
@@ -218,6 +244,7 @@ export default function Appointments() {
         onCancel={(id) => setStatus(id, 'cancelled')}
         onComplete={(id) => setStatus(id, 'completed')}
         onDelete={excluir}
+        onReschedule={remarcar}
       />
     </div>
   )
@@ -387,7 +414,42 @@ function ListView({
   onSelect: (a: Appointment) => void
 }) {
   return (
-    <div className="bg-card border rounded-xl shadow-sm overflow-hidden">
+    <>
+      {/* No celular, cinco colunas viram rolagem lateral: aqui cada consulta
+          e um cartao que cabe na tela e abre com um toque. */}
+      <div className="md:hidden space-y-2">
+        {appointments.length === 0 && (
+          <p className="text-center py-8 text-muted-foreground">Nenhuma consulta agendada</p>
+        )}
+        {appointments.map((a) => {
+          const badge = statusBadge(a.status)
+          return (
+            <button
+              key={a.id}
+              onClick={() => onSelect(a)}
+              className="w-full text-left bg-card border rounded-xl shadow-sm p-3 active:bg-muted/50 transition-colors"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <span className="font-medium text-primary truncate">
+                  {a.expand?.patient_id?.name || 'Desconhecido'}
+                </span>
+                <Badge variant={badge.variant} className="font-medium shrink-0">
+                  {badge.label}
+                </Badge>
+              </div>
+              <p className="flex items-center gap-1.5 text-sm mt-1">
+                <CalendarIcon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                {format(new Date(a.appointment_date), "dd/MM/yyyy 'às' HH:mm")}
+              </p>
+              {a.notes && (
+                <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{a.notes}</p>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      <div className="hidden md:block bg-card border rounded-xl shadow-sm overflow-hidden">
       <Table>
         <TableHeader className="bg-muted/10">
           <TableRow>
@@ -437,7 +499,8 @@ function ListView({
           })}
         </TableBody>
       </Table>
-    </div>
+      </div>
+    </>
   )
 }
 
@@ -447,15 +510,35 @@ function AppointmentDialog({
   onCancel,
   onComplete,
   onDelete,
+  onReschedule,
 }: {
   appointment: Appointment | null
   onClose: () => void
   onCancel: (id: string) => void
   onComplete: (id: string) => void
   onDelete: (id: string) => void
+  onReschedule: (id: string, quando: Date) => void
 }) {
   const a = appointment
   const badge = a ? statusBadge(a.status) : null
+  const [remarcando, setRemarcando] = useState(false)
+  const [novaData, setNovaData] = useState('')
+  const { toast } = useToast()
+
+  // Ao trocar de consulta, o formulário de remarcar volta ao início.
+  useEffect(() => {
+    setRemarcando(false)
+    setNovaData('')
+  }, [a?.id])
+
+  const confirmarRemarcacao = () => {
+    if (!a || !novaData) return
+    if (!ehHoraCheia(novaData)) {
+      toast({ title: 'Horário inválido', description: AVISO_HORA_CHEIA, variant: 'destructive' })
+      return
+    }
+    onReschedule(a.id, new Date(novaData))
+  }
 
   return (
     <Dialog open={!!a} onOpenChange={(o) => !o && onClose()}>
@@ -475,6 +558,43 @@ function AppointmentDialog({
               <span className="text-muted-foreground">Status</span>
               {badge && <Badge variant={badge.variant}>{badge.label}</Badge>}
             </div>
+
+            {a.status === 'scheduled' && (
+              <div className="space-y-2 pt-1">
+                {remarcando ? (
+                  <div className="rounded-lg border p-3 space-y-2">
+                    <Label>Nova data e hora</Label>
+                    <Input
+                      type="datetime-local"
+                      value={novaData}
+                      onChange={(e) => setNovaData(e.target.value)}
+                      step={PASSO_HORA_EM_SEGUNDOS}
+                      className="cursor-pointer"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Só a data muda. Paciente, observações e status ficam como estão, e os
+                      lembretes de WhatsApp são reagendados sozinhos.
+                    </p>
+                    <div className="flex justify-end gap-2">
+                      <Button variant="ghost" size="sm" onClick={() => setRemarcando(false)}>
+                        Cancelar
+                      </Button>
+                      <Button size="sm" onClick={confirmarRemarcacao} disabled={!novaData}>
+                        Salvar novo horário
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    variant="outline"
+                    className="w-full gap-1.5 touch-target"
+                    onClick={() => setRemarcando(true)}
+                  >
+                    <CalendarDays className="w-4 h-4" /> Remarcar
+                  </Button>
+                )}
+              </div>
+            )}
 
             <div className="flex flex-wrap justify-end gap-2 pt-2">
               {a.status === 'scheduled' && (
