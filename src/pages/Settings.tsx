@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { useAuth } from '@/hooks/use-auth'
 import { useSettings } from '@/hooks/use-settings'
 import { updateClinicSettings } from '@/services/settings'
@@ -18,6 +19,7 @@ export default function Settings() {
   const [whatsapp, setWhatsapp] = useState('')
   const [welcome, setWelcome] = useState('')
   const [alertaLead, setAlertaLead] = useState('')
+  const [avisoNaHora, setAvisoNaHora] = useState(false)
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -26,6 +28,7 @@ export default function Settings() {
       setWhatsapp(settings.clinic_whatsapp ?? '')
       setWelcome(settings.welcome_message ?? '')
       setAlertaLead(settings.alert_whatsapp ?? '')
+      setAvisoNaHora(!!settings.alert_realtime)
     }
   }, [settings])
 
@@ -38,6 +41,7 @@ export default function Settings() {
         clinic_whatsapp: whatsapp.replace(/\D/g, ''),
         welcome_message: welcome.trim(),
         alert_whatsapp: alertaLead.replace(/\D/g, ''),
+        alert_realtime: avisoNaHora,
       })
       await reload()
       toast({ title: 'Salvo', description: 'Configurações da clínica atualizadas.' })
@@ -101,7 +105,7 @@ export default function Settings() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-foreground">Avisos no WhatsApp</Label>
+                <Label className="text-foreground">Meu WhatsApp (avisos)</Label>
                 <Input
                   value={alertaLead}
                   onChange={(e) => setAlertaLead(e.target.value)}
@@ -109,11 +113,21 @@ export default function Settings() {
                   inputMode="numeric"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Número que recebe aviso a cada <b>lead novo</b> (nome, telefone e origem) e a
-                  cada movimento da agenda: <b>consulta marcada</b>, <b>cancelada</b> e{' '}
-                  <b>remarcada</b>. Deixe vazio para não avisar ninguém. Os avisos saem pelo
-                  WhatsApp da clínica e não são enviados em importações de lista.
+                  Recebe o <b>resumo do dia às 20:00</b>: leads novos, consultas marcadas,
+                  realizadas e canceladas, e a agenda de amanhã. Vazio = não envia nada. Sai
+                  pelo WhatsApp da clínica.
                 </p>
+              </div>
+
+              <div className="flex items-start justify-between gap-4 rounded-lg border p-3">
+                <div className="space-y-1">
+                  <Label className="text-foreground">Avisar também na hora</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Ligado, chega uma mensagem a cada lead novo e a cada consulta marcada,
+                    cancelada ou remarcada — além do resumo. Desligado, só o resumo das 20:00.
+                  </p>
+                </div>
+                <Switch checked={avisoNaHora} onCheckedChange={setAvisoNaHora} />
               </div>
               <div className="pt-2 flex justify-end">
                 <Button onClick={handleSave} disabled={saving} className="gap-2">

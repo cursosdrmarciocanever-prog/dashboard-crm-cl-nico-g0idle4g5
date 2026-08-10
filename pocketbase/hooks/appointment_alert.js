@@ -24,10 +24,12 @@ onRecordAfterCreateSuccess((e) => {
   try {
     if (rec.getString('status') !== 'scheduled') return e.next()
 
+    // Aviso na hora ligado? Desligado (padrao), tudo sai no relatorio das 20:00.
     let destino = ''
     try {
       const cfg = $app.findFirstRecordByFilter('settings', "key = 'clinic'")
-      destino = cfg ? cfg.getString('alert_whatsapp') : ''
+      if (!cfg || !cfg.getBool('alert_realtime')) return e.next()
+      destino = cfg.getString('alert_whatsapp')
     } catch (err) {
       return e.next()
     }
@@ -146,10 +148,12 @@ onRecordAfterUpdateSuccess((e) => {
     }
     if (!tipo) return e.next()
 
+    // Aviso na hora ligado? Desligado (padrao), tudo sai no relatorio das 20:00.
     let destino = ''
     try {
       const cfg = $app.findFirstRecordByFilter('settings', "key = 'clinic'")
-      destino = cfg ? cfg.getString('alert_whatsapp') : ''
+      if (!cfg || !cfg.getBool('alert_realtime')) return e.next()
+      destino = cfg.getString('alert_whatsapp')
     } catch (err) {
       return e.next()
     }

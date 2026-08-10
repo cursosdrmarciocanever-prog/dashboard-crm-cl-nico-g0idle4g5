@@ -23,11 +23,13 @@ onRecordAfterCreateSuccess((e) => {
     // 1) Importados nao contam como "chegou lead".
     if (rec.getBool('imported')) return e.next()
 
-    // 2) Destino configurado?
+    // 2) Destino configurado E aviso na hora ligado? Com o interruptor
+    // desligado (padrao), o lead entra no relatorio das 20:00 e nada sai agora.
     let destino = ''
     try {
       const cfg = $app.findFirstRecordByFilter('settings', "key = 'clinic'")
-      destino = cfg ? cfg.getString('alert_whatsapp') : ''
+      if (!cfg || !cfg.getBool('alert_realtime')) return e.next()
+      destino = cfg.getString('alert_whatsapp')
     } catch (err) {
       return e.next() // sem colecao settings ainda: silencio
     }
