@@ -101,7 +101,7 @@ export default function Settings() {
                 />
               </div>
               <div className="space-y-2">
-                <Label className="text-foreground">Avisar lead novo no WhatsApp</Label>
+                <Label className="text-foreground">Avisos no WhatsApp</Label>
                 <Input
                   value={alertaLead}
                   onChange={(e) => setAlertaLead(e.target.value)}
@@ -109,9 +109,10 @@ export default function Settings() {
                   inputMode="numeric"
                 />
                 <p className="text-xs text-muted-foreground">
-                  Número que recebe um aviso a cada lead novo, com nome, telefone e origem.
-                  Deixe vazio para não avisar ninguém. O aviso sai pelo WhatsApp da clínica e
-                  não é enviado em importações de lista.
+                  Número que recebe aviso a cada <b>lead novo</b> (nome, telefone e origem) e a
+                  cada <b>consulta marcada</b> (paciente, data e hora). Deixe vazio para não
+                  avisar ninguém. Os avisos saem pelo WhatsApp da clínica e não são enviados em
+                  importações de lista.
                 </p>
               </div>
               <div className="pt-2 flex justify-end">
