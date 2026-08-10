@@ -1,23 +1,49 @@
 /**
- * Consultas da clínica são marcadas de meia em meia hora (08:00, 08:30, 09:00...).
+ * Horários que a clínica atende.
  *
- * A regra mora aqui, num lugar só, e vale para todas as telas que marcam ou
- * remarcam consulta. Já mudou uma vez — era de hora em hora — e mudar de novo
- * é trocar estas três linhas.
+ * Manhã das 07:00 às 11:30 e tarde das 13:30 às 18:00, de meia em meia hora.
+ * O intervalo do meio-dia (12:00, 12:30 e 13:00) não é oferecido.
  *
- * Duas camadas, de propósito: o `step` faz o seletor do navegador andar de 30
- * em 30, e a checagem barra o que escapar. Nem todo navegador respeita o step,
- * e um 14:37 passando despercebido bagunça a agenda.
+ * A grade mora aqui, num lugar só, e vale para todas as telas que marcam ou
+ * remarcam consulta. Mudar o horário de atendimento é mexer nas constantes
+ * abaixo — não em cada tela.
  */
-export const PASSO_EM_SEGUNDOS = 30 * 60
 
-/** Aceita só :00 e :30 — os minutos que a agenda da clínica usa. */
+/** Início e fim de cada turno, em minutos desde a meia-noite. */
+const TURNOS = [
+  { rotulo: 'Manhã', de: 7 * 60, ate: 11 * 60 + 30 },
+  { rotulo: 'Tarde', de: 13 * 60 + 30, ate: 18 * 60 },
+]
+
+const PASSO_EM_MINUTOS = 30
+
+const doisDigitos = (n: number) => ('0' + n).slice(-2)
+const paraHHMM = (minutos: number) =>
+  `${doisDigitos(Math.floor(minutos / 60))}:${doisDigitos(minutos % 60)}`
+
+/** Os turnos com seus horários, para a lista aparecer separada na tela. */
+export const TURNOS_DE_ATENDIMENTO = TURNOS.map((t) => {
+  const horarios: string[] = []
+  for (let m = t.de; m <= t.ate; m += PASSO_EM_MINUTOS) horarios.push(paraHHMM(m))
+  return { rotulo: t.rotulo, horarios }
+})
+
+/** Todos os horários válidos, em ordem: 07:00, 07:30, ..., 11:30, 13:30, ..., 18:00. */
+export const HORARIOS_DISPONIVEIS = TURNOS_DE_ATENDIMENTO.flatMap((t) => t.horarios)
+
+/**
+ * O horário está na grade de atendimento?
+ *
+ * A checagem continua existindo mesmo com a lista fechada na tela: o seletor
+ * impede o erro comum, mas o que chega ao banco vem da API, e um 12:15 salvo
+ * por outro caminho bagunçaria a agenda do mesmo jeito.
+ */
 export function ehHorarioValido(valor: string): boolean {
   if (!valor) return false
   const d = new Date(valor)
-  const min = d.getMinutes()
-  return (min === 0 || min === 30) && d.getSeconds() === 0
+  if (isNaN(d.getTime())) return false
+  return HORARIOS_DISPONIVEIS.includes(`${doisDigitos(d.getHours())}:${doisDigitos(d.getMinutes())}`)
 }
 
 export const AVISO_HORARIO_INVALIDO =
-  'As consultas são marcadas de meia em meia hora — escolha um horário como 08:00 ou 08:30.'
+  'A clínica atende das 07:00 às 11:30 e das 13:30 às 18:00, de meia em meia hora. Escolha um horário da lista.'

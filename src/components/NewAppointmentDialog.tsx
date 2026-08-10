@@ -21,7 +21,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { createAppointment } from '@/services/appointments'
 import { getPatients, Patient } from '@/services/patients'
 import { useToast } from '@/hooks/use-toast'
-import { AVISO_HORARIO_INVALIDO, ehHorarioValido, PASSO_EM_SEGUNDOS } from '@/lib/appointment-time'
+import { AVISO_HORARIO_INVALIDO, ehHorarioValido } from '@/lib/appointment-time'
+import { SeletorDataHora } from '@/components/SeletorDataHora'
 import { Loader2, Clock } from 'lucide-react'
 
 interface NewAppointmentDialogProps {
@@ -134,26 +135,10 @@ export function NewAppointmentDialog({
           </div>
           <div className="space-y-2">
             <Label>Data e Hora da Consulta</Label>
-            <Input
-              type="datetime-local"
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-              // clicar em qualquer parte do campo abre o calendario (nao so no icone)
-              onClick={(ev) => {
-                const el = ev.currentTarget as HTMLInputElement & { showPicker?: () => void }
-                try {
-                  el.showPicker?.()
-                } catch {
-                  // navegador sem suporte: o icone nativo continua funcionando
-                }
-              }}
-              step={PASSO_EM_SEGUNDOS}
-              className="cursor-pointer"
-              required
-            />
+            <SeletorDataHora value={date} onChange={setDate} />
             <p className="text-xs text-muted-foreground">
-              Clique no campo para abrir o calendário. Horários de meia em meia hora. A
-              confirmação por WhatsApp só é enviada depois que a data e a hora forem preenchidas.
+              Atendimento das 07:00 às 11:30 e das 13:30 às 18:00. A confirmação por WhatsApp só
+              é enviada depois que a data e a hora forem preenchidas.
             </p>
           </div>
           <div className="space-y-2">

@@ -10,7 +10,6 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { NewAppointmentDialog } from '@/components/NewAppointmentDialog'
 import {
@@ -19,8 +18,8 @@ import {
   type Appointment,
 } from '@/services/appointments'
 import { useToast } from '@/hooks/use-toast'
-import { AVISO_HORARIO_INVALIDO, ehHorarioValido, PASSO_EM_SEGUNDOS } from '@/lib/appointment-time'
-import { cn } from '@/lib/utils'
+import { AVISO_HORARIO_INVALIDO, ehHorarioValido } from '@/lib/appointment-time'
+import { SeletorDataHora } from '@/components/SeletorDataHora'
 
 interface PatientAppointmentsProps {
   patientId: string
@@ -255,26 +254,12 @@ function RegistrarAnteriorDialog({
         </DialogHeader>
         <form onSubmit={salvar} className="space-y-4">
           <p className="text-xs text-muted-foreground">
-            Para lançar atendimentos anteriores ao CRM. Horários de meia em meia hora. Não envia nenhuma mensagem ao paciente.
+            Para lançar atendimentos anteriores ao CRM. Atendimento das 07:00 às 11:30 e das
+            13:30 às 18:00. Não envia nenhuma mensagem ao paciente.
           </p>
           <div className="space-y-2">
             <Label>Data e hora da consulta</Label>
-            <Input
-              type="datetime-local"
-              value={data}
-              onChange={(e) => setData(e.target.value)}
-              step={PASSO_EM_SEGUNDOS}
-              onClick={(ev) => {
-                const el = ev.currentTarget as HTMLInputElement & { showPicker?: () => void }
-                try {
-                  el.showPicker?.()
-                } catch {
-                  /* navegador sem suporte */
-                }
-              }}
-              className={cn('cursor-pointer')}
-              required
-            />
+            <SeletorDataHora value={data} onChange={setData} />
           </div>
           <div className="space-y-2">
             <Label>Observações (opcional)</Label>

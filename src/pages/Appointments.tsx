@@ -15,13 +15,9 @@ import {
 } from '@/components/ui/table'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  AVISO_HORARIO_INVALIDO,
-  ehHorarioValido,
-  PASSO_EM_SEGUNDOS,
-} from '@/lib/appointment-time'
+import { AVISO_HORARIO_INVALIDO, ehHorarioValido } from '@/lib/appointment-time'
+import { SeletorDataHora } from '@/components/SeletorDataHora'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
   AlertDialog,
@@ -564,16 +560,11 @@ function AppointmentDialog({
                 {remarcando ? (
                   <div className="rounded-lg border p-3 space-y-2">
                     <Label>Nova data e hora</Label>
-                    <Input
-                      type="datetime-local"
-                      value={novaData}
-                      onChange={(e) => setNovaData(e.target.value)}
-                      step={PASSO_EM_SEGUNDOS}
-                      className="cursor-pointer"
-                    />
+                    <SeletorDataHora value={novaData} onChange={setNovaData} />
                     <p className="text-xs text-muted-foreground">
-                      Só a data muda. Paciente, observações e status ficam como estão, e os
-                      lembretes de WhatsApp são reagendados sozinhos.
+                      Atendimento das 07:00 às 11:30 e das 13:30 às 18:00. Só a data muda:
+                      paciente, observações e status ficam como estão, e os lembretes de
+                      WhatsApp são reagendados sozinhos.
                     </p>
                     <div className="flex justify-end gap-2">
                       <Button variant="ghost" size="sm" onClick={() => setRemarcando(false)}>
