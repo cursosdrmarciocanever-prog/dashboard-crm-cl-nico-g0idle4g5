@@ -18,6 +18,7 @@ import Conversas from './pages/Conversas'
 import Automacoes from './pages/Automacoes'
 import ImportarLeads from './pages/ImportarLeads'
 import Implantes from './pages/Implantes'
+import Receitas from './pages/Receitas'
 import Performance from './pages/Performance'
 import Settings from './pages/Settings'
 import NotFound from './pages/NotFound'
@@ -42,6 +43,7 @@ const App = () => (
             <Route path="/agendamentos" element={<Appointments />} />
             <Route path="/conversas" element={<Conversas />} />
             <Route path="/mensagens" element={<ScheduledMessages />} />
+            <Route path="/receitas" element={<Receitas />} />
             <Route path="/automacoes" element={<Automacoes />} />
             <Route path="/performance" element={<Performance />} />
             <Route path="/configuracoes" element={<Settings />} />

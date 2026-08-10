@@ -12,6 +12,7 @@ import {
   Bot,
   Syringe,
   TrendingUp,
+  FileText,
 } from 'lucide-react'
 import {
   Sidebar as ShadcnSidebar,
@@ -42,6 +43,7 @@ const menuItems: MenuItem[] = [
   { icon: MessagesSquare, label: 'Conversas', path: '/conversas' },
   { icon: Calendar, label: 'Agendamentos', path: '/agendamentos' },
   { icon: MessageSquare, label: 'Mensagens Agendadas', path: '/mensagens' },
+  { icon: FileText, label: 'Receitas', path: '/receitas' },
   { icon: Bot, label: 'Automações', path: '/automacoes', adminOnly: true },
   { icon: TrendingUp, label: 'Performance', path: '/performance', adminOnly: true },
   { icon: Settings, label: 'Configurações', path: '/configuracoes', adminOnly: true },
