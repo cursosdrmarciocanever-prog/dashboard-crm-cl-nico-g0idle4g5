@@ -110,9 +110,9 @@ export default function Settings() {
                 />
                 <p className="text-xs text-muted-foreground">
                   Número que recebe aviso a cada <b>lead novo</b> (nome, telefone e origem) e a
-                  cada <b>consulta marcada</b> (paciente, data e hora). Deixe vazio para não
-                  avisar ninguém. Os avisos saem pelo WhatsApp da clínica e não são enviados em
-                  importações de lista.
+                  cada movimento da agenda: <b>consulta marcada</b>, <b>cancelada</b> e{' '}
+                  <b>remarcada</b>. Deixe vazio para não avisar ninguém. Os avisos saem pelo
+                  WhatsApp da clínica e não são enviados em importações de lista.
                 </p>
               </div>
               <div className="pt-2 flex justify-end">
