@@ -125,6 +125,9 @@ export default function Settings() {
                   <p className="text-xs text-muted-foreground">
                     Ligado, chega uma mensagem a cada lead novo e a cada consulta marcada,
                     cancelada ou remarcada — além do resumo. Desligado, só o resumo das 20:00.
+                    <br />
+                    <b>Solicitação de receita avisa na hora de qualquer jeito</b>, com o
+                    interruptor ligado ou desligado: é pedido parado esperando o médico.
                   </p>
                 </div>
                 <Switch checked={avisoNaHora} onCheckedChange={setAvisoNaHora} />
