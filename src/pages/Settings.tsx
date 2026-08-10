@@ -17,6 +17,7 @@ export default function Settings() {
   const [clinicName, setClinicName] = useState('')
   const [whatsapp, setWhatsapp] = useState('')
   const [welcome, setWelcome] = useState('')
+  const [alertaLead, setAlertaLead] = useState('')
   const [saving, setSaving] = useState(false)
 
   useEffect(() => {
@@ -24,6 +25,7 @@ export default function Settings() {
       setClinicName(settings.clinic_name ?? '')
       setWhatsapp(settings.clinic_whatsapp ?? '')
       setWelcome(settings.welcome_message ?? '')
+      setAlertaLead(settings.alert_whatsapp ?? '')
     }
   }, [settings])
 
@@ -35,6 +37,7 @@ export default function Settings() {
         clinic_name: clinicName.trim(),
         clinic_whatsapp: whatsapp.replace(/\D/g, ''),
         welcome_message: welcome.trim(),
+        alert_whatsapp: alertaLead.replace(/\D/g, ''),
       })
       await reload()
       toast({ title: 'Salvo', description: 'Configurações da clínica atualizadas.' })
@@ -96,6 +99,20 @@ export default function Settings() {
                   onChange={(e) => setWelcome(e.target.value)}
                   placeholder="Olá! Vim pelo site da clínica..."
                 />
+              </div>
+              <div className="space-y-2">
+                <Label className="text-foreground">Avisar lead novo no WhatsApp</Label>
+                <Input
+                  value={alertaLead}
+                  onChange={(e) => setAlertaLead(e.target.value)}
+                  placeholder="5544999999999"
+                  inputMode="numeric"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Número que recebe um aviso a cada lead novo, com nome, telefone e origem.
+                  Deixe vazio para não avisar ninguém. O aviso sai pelo WhatsApp da clínica e
+                  não é enviado em importações de lista.
+                </p>
               </div>
               <div className="pt-2 flex justify-end">
                 <Button onClick={handleSave} disabled={saving} className="gap-2">

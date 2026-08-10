@@ -7,6 +7,8 @@ export interface ClinicSettings extends RecordModel {
   clinic_whatsapp?: string
   welcome_message?: string
   logo?: string
+  /** Recebe o aviso de lead novo no WhatsApp. Vazio = não avisa ninguém. */
+  alert_whatsapp?: string
 }
 
 // Busca o registro unico de configuracao da clinica (key = 'clinic').
