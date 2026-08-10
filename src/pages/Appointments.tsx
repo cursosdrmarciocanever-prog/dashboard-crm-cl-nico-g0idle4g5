@@ -18,9 +18,9 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
-  AVISO_HORA_CHEIA,
-  ehHoraCheia,
-  PASSO_HORA_EM_SEGUNDOS,
+  AVISO_HORARIO_INVALIDO,
+  ehHorarioValido,
+  PASSO_EM_SEGUNDOS,
 } from '@/lib/appointment-time'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -533,8 +533,8 @@ function AppointmentDialog({
 
   const confirmarRemarcacao = () => {
     if (!a || !novaData) return
-    if (!ehHoraCheia(novaData)) {
-      toast({ title: 'Horário inválido', description: AVISO_HORA_CHEIA, variant: 'destructive' })
+    if (!ehHorarioValido(novaData)) {
+      toast({ title: 'Horário inválido', description: AVISO_HORARIO_INVALIDO, variant: 'destructive' })
       return
     }
     onReschedule(a.id, new Date(novaData))
@@ -568,7 +568,7 @@ function AppointmentDialog({
                       type="datetime-local"
                       value={novaData}
                       onChange={(e) => setNovaData(e.target.value)}
-                      step={PASSO_HORA_EM_SEGUNDOS}
+                      step={PASSO_EM_SEGUNDOS}
                       className="cursor-pointer"
                     />
                     <p className="text-xs text-muted-foreground">

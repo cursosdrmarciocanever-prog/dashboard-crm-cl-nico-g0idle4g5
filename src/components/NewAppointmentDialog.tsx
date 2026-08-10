@@ -21,7 +21,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { createAppointment } from '@/services/appointments'
 import { getPatients, Patient } from '@/services/patients'
 import { useToast } from '@/hooks/use-toast'
-import { AVISO_HORA_CHEIA, ehHoraCheia, PASSO_HORA_EM_SEGUNDOS } from '@/lib/appointment-time'
+import { AVISO_HORARIO_INVALIDO, ehHorarioValido, PASSO_EM_SEGUNDOS } from '@/lib/appointment-time'
 import { Loader2, Clock } from 'lucide-react'
 
 interface NewAppointmentDialogProps {
@@ -72,8 +72,8 @@ export function NewAppointmentDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!patientId || !date) return
-    if (!ehHoraCheia(date)) {
-      toast({ title: 'Horário inválido', description: AVISO_HORA_CHEIA, variant: 'destructive' })
+    if (!ehHorarioValido(date)) {
+      toast({ title: 'Horário inválido', description: AVISO_HORARIO_INVALIDO, variant: 'destructive' })
       return
     }
     setLoading(true)
@@ -147,13 +147,13 @@ export function NewAppointmentDialog({
                   // navegador sem suporte: o icone nativo continua funcionando
                 }
               }}
-              step={PASSO_HORA_EM_SEGUNDOS}
+              step={PASSO_EM_SEGUNDOS}
               className="cursor-pointer"
               required
             />
             <p className="text-xs text-muted-foreground">
-              Clique no campo para abrir o calendário. A confirmação por WhatsApp só é enviada
-              depois que a data e a hora forem preenchidas.
+              Clique no campo para abrir o calendário. Horários de meia em meia hora. A
+              confirmação por WhatsApp só é enviada depois que a data e a hora forem preenchidas.
             </p>
           </div>
           <div className="space-y-2">
