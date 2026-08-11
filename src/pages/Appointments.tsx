@@ -17,6 +17,16 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { validarAgendamento, ehFimDeSemana } from '@/lib/appointment-time'
+import {
+  avisoDeBloqueio,
+  bloqueioNoInstante,
+  bloqueiosDoDia,
+  diaTodoBloqueado,
+  rotuloDoBloqueio,
+} from '@/lib/agenda-block'
+import { useAgendaBlocks } from '@/hooks/use-agenda-blocks'
+import { BloquearAgendaDialog } from '@/components/BloquearAgendaDialog'
+import type { AgendaBlock } from '@/services/agenda-blocks'
 import { SeletorDataHora } from '@/components/SeletorDataHora'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -87,6 +97,7 @@ export default function Appointments() {
   const [month, setMonth] = useState<Date>(new Date())
   const [selected, setSelected] = useState<Appointment | null>(null)
   const { toast } = useToast()
+  const { blocos } = useAgendaBlocks()
 
   const load = async () => {
     const data = await getAppointments()
@@ -162,6 +173,18 @@ export default function Appointments() {
     const destino = trocarDia(original, novoDia)
     const anterior = appt.appointment_date
 
+    // O dia bloqueado é visível na grade, mas arrastar erra o alvo com
+    // facilidade — recusar aqui evita a consulta pousar num dia fechado.
+    const bloqueio = bloqueioNoInstante(blocos, destino)
+    if (bloqueio) {
+      toast({
+        title: 'Dia bloqueado',
+        description: avisoDeBloqueio(bloqueio),
+        variant: 'destructive',
+      })
+      return
+    }
+
     try {
       await updateAppointment(appt.id, { appointment_date: paraPocketBase(destino) })
       await load()
@@ -217,6 +240,7 @@ export default function Appointments() {
               <List className="w-4 h-4" /> Lista
             </Button>
           </div>
+          <BloquearAgendaDialog />
           <NewAppointmentDialog />
         </div>
       </div>
@@ -224,6 +248,7 @@ export default function Appointments() {
       {view === 'calendar' ? (
         <CalendarView
           appointments={appointments}
+          blocos={blocos}
           month={month}
           onPrev={() => setMonth(subMonths(month, 1))}
           onNext={() => setMonth(addMonths(month, 1))}
@@ -237,6 +262,7 @@ export default function Appointments() {
 
       <AppointmentDialog
         appointment={selected}
+        blocos={blocos}
         onClose={() => setSelected(null)}
         onCancel={(id) => setStatus(id, 'cancelled')}
         onComplete={(id) => setStatus(id, 'completed')}
@@ -249,6 +275,7 @@ export default function Appointments() {
 
 function CalendarView({
   appointments,
+  blocos,
   month,
   onPrev,
   onNext,
@@ -257,6 +284,7 @@ function CalendarView({
   onMove,
 }: {
   appointments: Appointment[]
+  blocos: AgendaBlock[]
   month: Date
   onPrev: () => void
   onNext: () => void
@@ -342,11 +370,14 @@ function CalendarView({
         {days.map((day) => {
           const inMonth = isSameMonth(day, month)
           const dayAppts = byDay(day)
+          const bloqueiosDoDiaAtual = bloqueiosDoDia(blocos, day)
+          const fechado = diaTodoBloqueado(blocos, day)
           return (
             <div
               key={day.toISOString()}
               onDragOver={(e) => {
                 if (!arrastando.current) return
+                if (fechado) return // dia bloqueado não aceita consulta arrastada
                 e.preventDefault() // sem isso o navegador recusa o drop
                 setAlvo(day.toDateString())
               }}
@@ -361,6 +392,11 @@ function CalendarView({
               className={cn(
                 'min-h-[92px] border-b border-r p-1.5 flex flex-col gap-1 transition-colors',
                 !inMonth && 'bg-muted/20 text-muted-foreground',
+                // O dia fechado tem que saltar aos olhos ao bater a vista no
+                // mês; a faixa listrada diferencia à distância, sem depender de
+                // ler o rótulo.
+                fechado &&
+                  'bg-rose-100 dark:bg-rose-950/50 bg-[repeating-linear-gradient(45deg,transparent,transparent_6px,rgba(190,18,60,0.10)_6px,rgba(190,18,60,0.10)_12px)]',
                 alvo === day.toDateString() && 'bg-primary/10 ring-2 ring-inset ring-primary/40',
               )}
             >
@@ -368,10 +404,23 @@ function CalendarView({
                 className={cn(
                   'text-xs font-medium w-6 h-6 flex items-center justify-center rounded-full',
                   isToday(day) && 'bg-primary text-primary-foreground',
+                  fechado && !isToday(day) && 'text-rose-900 dark:text-rose-200',
                 )}
               >
                 {format(day, 'd')}
               </span>
+
+              {bloqueiosDoDiaAtual.map((b) => (
+                <span
+                  key={b.id}
+                  title={b.reason ? `Bloqueado — ${b.reason}` : 'Agenda bloqueada'}
+                  className="text-[10px] leading-tight rounded px-1 py-0.5 font-medium truncate bg-rose-600 text-white dark:bg-rose-700"
+                >
+                  {rotuloDoBloqueio(b)}
+                  {b.reason ? ` · ${b.reason}` : ''}
+                </span>
+              ))}
+
               <div className="flex flex-col gap-1 overflow-hidden">
                 {dayAppts.slice(0, 3).map((a) => (
                   <button
@@ -526,6 +575,7 @@ function ListView({
 
 function AppointmentDialog({
   appointment,
+  blocos,
   onClose,
   onCancel,
   onComplete,
@@ -533,6 +583,7 @@ function AppointmentDialog({
   onReschedule,
 }: {
   appointment: Appointment | null
+  blocos: AgendaBlock[]
   onClose: () => void
   onCancel: (id: string) => void
   onComplete: (id: string) => void
@@ -556,6 +607,15 @@ function AppointmentDialog({
     const problema = validarAgendamento(novaData)
     if (problema) {
       toast({ title: 'Não dá para remarcar', description: problema, variant: 'destructive' })
+      return
+    }
+    const bloqueio = bloqueioNoInstante(blocos, new Date(novaData))
+    if (bloqueio) {
+      toast({
+        title: 'Não dá para remarcar',
+        description: avisoDeBloqueio(bloqueio),
+        variant: 'destructive',
+      })
       return
     }
     onReschedule(a.id, new Date(novaData))

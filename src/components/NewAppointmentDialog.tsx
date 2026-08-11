@@ -22,6 +22,8 @@ import { createAppointment } from '@/services/appointments'
 import { getPatients, Patient } from '@/services/patients'
 import { useToast } from '@/hooks/use-toast'
 import { validarAgendamento } from '@/lib/appointment-time'
+import { avisoDeBloqueio, bloqueioNoInstante } from '@/lib/agenda-block'
+import { useAgendaBlocks } from '@/hooks/use-agenda-blocks'
 import { SeletorDataHora } from '@/components/SeletorDataHora'
 import { Loader2, Clock } from 'lucide-react'
 
@@ -56,6 +58,7 @@ export function NewAppointmentDialog({
   const [loading, setLoading] = useState(false)
   const [patients, setPatients] = useState<Patient[]>([])
   const { toast } = useToast()
+  const { blocos } = useAgendaBlocks()
 
   const [patientId, setPatientId] = useState('')
   const [date, setDate] = useState('')
@@ -76,6 +79,15 @@ export function NewAppointmentDialog({
     const problema = validarAgendamento(date)
     if (problema) {
       toast({ title: 'Não dá para agendar', description: problema, variant: 'destructive' })
+      return
+    }
+    const bloqueio = bloqueioNoInstante(blocos, new Date(date))
+    if (bloqueio) {
+      toast({
+        title: 'Não dá para agendar',
+        description: avisoDeBloqueio(bloqueio),
+        variant: 'destructive',
+      })
       return
     }
     setLoading(true)
