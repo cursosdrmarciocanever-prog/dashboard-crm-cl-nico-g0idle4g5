@@ -16,7 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { AVISO_HORARIO_INVALIDO, ehHorarioValido } from '@/lib/appointment-time'
+import { validarAgendamento, ehFimDeSemana } from '@/lib/appointment-time'
 import { SeletorDataHora } from '@/components/SeletorDataHora'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import {
@@ -62,8 +62,6 @@ import { ToastAction } from '@/components/ui/toast'
 
 /** A clínica atende de segunda a sexta — o fim de semana não aparece na grade. */
 const WEEKDAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex']
-
-const ehFimDeSemana = (d: Date) => d.getDay() === 0 || d.getDay() === 6
 
 /** Formato aceito pelo PocketBase — o mesmo usado ao criar a consulta. */
 const paraPocketBase = (d: Date) => d.toISOString().replace('T', ' ').substring(0, 19) + 'Z'
@@ -555,8 +553,9 @@ function AppointmentDialog({
 
   const confirmarRemarcacao = () => {
     if (!a || !novaData) return
-    if (!ehHorarioValido(novaData)) {
-      toast({ title: 'Horário inválido', description: AVISO_HORARIO_INVALIDO, variant: 'destructive' })
+    const problema = validarAgendamento(novaData)
+    if (problema) {
+      toast({ title: 'Não dá para remarcar', description: problema, variant: 'destructive' })
       return
     }
     onReschedule(a.id, new Date(novaData))

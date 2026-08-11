@@ -18,7 +18,7 @@ import {
   type Appointment,
 } from '@/services/appointments'
 import { useToast } from '@/hooks/use-toast'
-import { AVISO_HORARIO_INVALIDO, ehHorarioValido } from '@/lib/appointment-time'
+import { validarAgendamento } from '@/lib/appointment-time'
 import { SeletorDataHora } from '@/components/SeletorDataHora'
 
 interface PatientAppointmentsProps {
@@ -208,8 +208,9 @@ function RegistrarAnteriorDialog({
     e.preventDefault()
     if (!data) return
 
-    if (!ehHorarioValido(data)) {
-      toast({ title: 'Horário inválido', description: AVISO_HORARIO_INVALIDO, variant: 'destructive' })
+    const problema = validarAgendamento(data)
+    if (problema) {
+      toast({ title: 'Não dá para registrar', description: problema, variant: 'destructive' })
       return
     }
 
@@ -254,8 +255,8 @@ function RegistrarAnteriorDialog({
         </DialogHeader>
         <form onSubmit={salvar} className="space-y-4">
           <p className="text-xs text-muted-foreground">
-            Para lançar atendimentos anteriores ao CRM. Atendimento das 07:00 às 11:30 e das
-            13:30 às 18:00. Não envia nenhuma mensagem ao paciente.
+            Para lançar atendimentos anteriores ao CRM. Atendimento de segunda a sexta, das 07:00
+            às 11:30 e das 13:30 às 18:00. Não envia nenhuma mensagem ao paciente.
           </p>
           <div className="space-y-2">
             <Label>Data e hora da consulta</Label>

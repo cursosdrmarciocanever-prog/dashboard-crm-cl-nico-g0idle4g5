@@ -21,7 +21,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { createAppointment } from '@/services/appointments'
 import { getPatients, Patient } from '@/services/patients'
 import { useToast } from '@/hooks/use-toast'
-import { AVISO_HORARIO_INVALIDO, ehHorarioValido } from '@/lib/appointment-time'
+import { validarAgendamento } from '@/lib/appointment-time'
 import { SeletorDataHora } from '@/components/SeletorDataHora'
 import { Loader2, Clock } from 'lucide-react'
 
@@ -73,8 +73,9 @@ export function NewAppointmentDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!patientId || !date) return
-    if (!ehHorarioValido(date)) {
-      toast({ title: 'Horário inválido', description: AVISO_HORARIO_INVALIDO, variant: 'destructive' })
+    const problema = validarAgendamento(date)
+    if (problema) {
+      toast({ title: 'Não dá para agendar', description: problema, variant: 'destructive' })
       return
     }
     setLoading(true)
@@ -137,8 +138,8 @@ export function NewAppointmentDialog({
             <Label>Data e Hora da Consulta</Label>
             <SeletorDataHora value={date} onChange={setDate} />
             <p className="text-xs text-muted-foreground">
-              Atendimento das 07:00 às 11:30 e das 13:30 às 18:00. A confirmação por WhatsApp só
-              é enviada depois que a data e a hora forem preenchidas.
+              Atendimento de segunda a sexta, das 07:00 às 11:30 e das 13:30 às 18:00. A
+              confirmação por WhatsApp só é enviada depois que a data e a hora forem preenchidas.
             </p>
           </div>
           <div className="space-y-2">

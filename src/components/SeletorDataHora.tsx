@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Input } from '@/components/ui/input'
+import { cn } from '@/lib/utils'
 import {
   Select,
   SelectContent,
@@ -9,7 +10,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { HORARIOS_DISPONIVEIS, TURNOS_DE_ATENDIMENTO } from '@/lib/appointment-time'
+import {
+  AVISO_FIM_DE_SEMANA,
+  diaParaData,
+  ehFimDeSemana,
+  HORARIOS_DISPONIVEIS,
+  TURNOS_DE_ATENDIMENTO,
+} from '@/lib/appointment-time'
 
 interface Props {
   /** Formato 'AAAA-MM-DDTHH:mm' — o mesmo do datetime-local que havia antes. */
@@ -43,10 +50,16 @@ export function SeletorDataHora({ value, onChange, min, max }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value])
 
+  // Sábado e domingo não viram agendamento. O campo guarda o que foi escolhido
+  // — apagar por baixo confunde mais do que avisa — mas nada é emitido para
+  // fora, então o formulário não tem como salvar.
+  const fimDeSemana = !!dia && ehFimDeSemana(diaParaData(dia))
+
   const emitir = (novoDia: string, novaHora: string) => {
     setDia(novoDia)
     setHora(novaHora)
-    onChange(novoDia && novaHora ? `${novoDia}T${novaHora}` : '')
+    const valido = novoDia && novaHora && !ehFimDeSemana(diaParaData(novoDia))
+    onChange(valido ? `${novoDia}T${novaHora}` : '')
   }
 
   // Horário salvo fora da grade (consulta antiga, de antes desta regra):
@@ -54,6 +67,7 @@ export function SeletorDataHora({ value, onChange, min, max }: Props) {
   const foraDaGrade = hora && !HORARIOS_DISPONIVEIS.includes(hora) ? hora : null
 
   return (
+    <div className="space-y-1.5">
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
       <Input
         type="date"
@@ -69,7 +83,11 @@ export function SeletorDataHora({ value, onChange, min, max }: Props) {
             /* navegador sem suporte: o ícone nativo continua funcionando */
           }
         }}
-        className="cursor-pointer"
+        aria-invalid={fimDeSemana}
+        className={cn(
+          'cursor-pointer',
+          fimDeSemana && 'border-destructive text-destructive focus-visible:ring-destructive',
+        )}
       />
       <Select value={hora} onValueChange={(h) => emitir(dia, h)}>
         <SelectTrigger>
@@ -94,6 +112,8 @@ export function SeletorDataHora({ value, onChange, min, max }: Props) {
           ))}
         </SelectContent>
       </Select>
+    </div>
+    {fimDeSemana && <p className="text-xs text-destructive">{AVISO_FIM_DE_SEMANA}</p>}
     </div>
   )
 }
