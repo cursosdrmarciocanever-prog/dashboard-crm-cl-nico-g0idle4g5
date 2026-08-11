@@ -60,7 +60,10 @@ import { NewAppointmentDialog } from '@/components/NewAppointmentDialog'
 import { useToast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/ui/toast'
 
-const WEEKDAYS = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+/** A clínica atende de segunda a sexta — o fim de semana não aparece na grade. */
+const WEEKDAYS = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex']
+
+const ehFimDeSemana = (d: Date) => d.getDay() === 0 || d.getDay() === 6
 
 /** Formato aceito pelo PocketBase — o mesmo usado ao criar a consulta. */
 const paraPocketBase = (d: Date) => d.toISOString().replace('T', ' ').substring(0, 19) + 'Z'
@@ -269,11 +272,25 @@ function CalendarView({
 
   // Só consulta agendada se move: concluída e cancelada são histórico.
   const podeMover = (a: Appointment) => a.status === 'scheduled'
+  // Semanas de segunda a domingo, com o fim de semana descartado: sobram 5 dias
+  // por semana, que é exatamente o que a grade de 5 colunas espera.
   const days = useMemo(() => {
-    const start = startOfWeek(startOfMonth(month), { weekStartsOn: 0 })
-    const end = endOfWeek(endOfMonth(month), { weekStartsOn: 0 })
-    return eachDayOfInterval({ start, end })
+    const start = startOfWeek(startOfMonth(month), { weekStartsOn: 1 })
+    const end = endOfWeek(endOfMonth(month), { weekStartsOn: 1 })
+    return eachDayOfInterval({ start, end }).filter((d) => !ehFimDeSemana(d))
   }, [month])
+
+  // Consulta marcada num sábado ou domingo (dado antigo, ou marcada antes desta
+  // regra) não tem mais célula onde aparecer. Sumir sem avisar seria pior do que
+  // mostrar o fim de semana: o aviso abaixo aponta o caso para a lista.
+  const noFimDeSemana = useMemo(
+    () =>
+      appointments.filter((a) => {
+        const d = new Date(a.appointment_date)
+        return a.status !== 'cancelled' && isSameMonth(d, month) && ehFimDeSemana(d)
+      }),
+    [appointments, month],
+  )
 
   const byDay = (day: Date) =>
     appointments
@@ -304,9 +321,18 @@ function CalendarView({
         </div>
       </div>
 
+      {noFimDeSemana.length > 0 && (
+        <p className="text-xs px-4 py-2 border-b bg-amber-50 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200">
+          {noFimDeSemana.length === 1
+            ? '1 consulta deste mês caiu no fim de semana e não aparece aqui.'
+            : `${noFimDeSemana.length} consultas deste mês caíram no fim de semana e não aparecem aqui.`}{' '}
+          Use a visão de Lista para vê-las.
+        </p>
+      )}
+
       <div className="overflow-x-auto">
-      <div className="min-w-[680px]">
-      <div className="grid grid-cols-7 border-b bg-muted/5">
+      <div className="min-w-[520px]">
+      <div className="grid grid-cols-5 border-b bg-muted/5">
         {WEEKDAYS.map((w) => (
           <div key={w} className="text-center text-xs font-medium text-muted-foreground py-2">
             {w}
@@ -314,7 +340,7 @@ function CalendarView({
         ))}
       </div>
 
-      <div className="grid grid-cols-7">
+      <div className="grid grid-cols-5">
         {days.map((day) => {
           const inMonth = isSameMonth(day, month)
           const dayAppts = byDay(day)
