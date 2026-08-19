@@ -4,9 +4,11 @@ import pb from '@/lib/pocketbase/client'
 interface AuthContextType {
   user: any
   isAuthenticated: boolean
-  /** 'admin' | 'secretaria'. Quem nao tem papel definido e tratado como admin. */
+  /** 'admin' | 'secretaria' | 'visitante'. Quem nao tem papel e tratado como admin. */
   role: string
   isAdmin: boolean
+  /** Demonstracao: ve tudo, nao grava nada. */
+  isVisitante: boolean
   signUp: (email: string, password: string) => Promise<{ error: any }>
   signIn: (email: string, password: string) => Promise<{ error: any }>
   signOut: () => void
@@ -70,6 +72,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }
 
   const role = user?.role || 'admin'
+  const isVisitante = role === 'visitante'
+  // O visitante enxerga a interface do admin de proposito: a ideia e mostrar o
+  // sistema inteiro. Esconder botao dele viraria uma demonstracao pela metade —
+  // quem barra a gravacao e a regra do servidor, e o aviso explica na hora.
   const isAdmin = role !== 'secretaria'
 
   return (
@@ -79,6 +85,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         isAuthenticated,
         role,
         isAdmin,
+        isVisitante,
         signUp,
         signIn,
         signOut,
