@@ -1,5 +1,6 @@
 import PocketBase from 'pocketbase'
 import { toast } from '@/hooks/use-toast'
+import { mascararNome, mascararTelefone } from '@/lib/mask'
 
 const pb = new PocketBase(import.meta.env.VITE_POCKETBASE_URL)
 pb.autoCancellation(false)
@@ -50,6 +51,51 @@ pb.beforeSend = (url, options) => {
   }
 
   return { url, options }
+}
+
+/**
+ * Disfarça nome e telefone de paciente enquanto o visitante navega.
+ *
+ * Fica no mesmo ponto da trava de escrita, e pelo mesmo motivo: toda resposta
+ * da API passa por aqui. Trocar o texto em cada tela deixaria de fora
+ * exatamente a que eu esquecesse.
+ *
+ * O que decide é o `collectionName` que o próprio PocketBase devolve em cada
+ * registro — não o nome do campo. Sem isso, mascarar "name" também trocaria o
+ * nome da clínica em Configurações e o do usuário no cabeçalho.
+ */
+const CAMPOS_POR_COLECAO: Record<string, string[]> = {
+  patients: ['name', 'phone', 'phone_key'],
+  messages: ['phone'],
+  scheduled_messages: ['phone'],
+}
+
+function disfarcar(valor: unknown, profundidade = 0): void {
+  // Respostas da API são JSON raso; o limite é só uma trava contra recursão
+  // infinita se algum dia vier estrutura cíclica.
+  if (profundidade > 8 || valor === null || typeof valor !== 'object') return
+
+  if (Array.isArray(valor)) {
+    valor.forEach((item) => disfarcar(item, profundidade + 1))
+    return
+  }
+
+  const obj = valor as Record<string, unknown>
+  const campos = CAMPOS_POR_COLECAO[obj.collectionName as string]
+  if (campos) {
+    for (const campo of campos) {
+      if (typeof obj[campo] !== 'string' || !obj[campo]) continue
+      obj[campo] = campo === 'name' ? mascararNome(obj[campo] as string) : mascararTelefone(obj[campo] as string)
+    }
+  }
+
+  // Segue por dentro: `items` da lista, `expand.patient_id` das relações.
+  Object.values(obj).forEach((v) => disfarcar(v, profundidade + 1))
+}
+
+pb.afterSend = (_response, data) => {
+  if (ehVisitante()) disfarcar(data)
+  return data
 }
 
 export default pb
